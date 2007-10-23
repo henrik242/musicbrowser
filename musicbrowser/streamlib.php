@@ -25,7 +25,7 @@ class StreamLib {
    * @param array $entries Array of arrays with keys moreinfo, url, starttime, duration, title, author & copyright
    * @param string $name Stream name
    */
-  function stream_asx(array $entries, $name = "playlist") {
+  function stream_asx($entries, $name = "playlist") {
 
      $output = "<asx version=\"3.0\">\n";
      foreach ($entries as $entry) {
@@ -48,7 +48,7 @@ class StreamLib {
    * @param array $entries Array of arrays with keys url, title
    * @param string $name Stream name
    */
-  function stream_pls(array $entries, $name = "playlist") {
+  function stream_pls($entries, $name = "playlist") {
      $output = "[playlist]\n";
      $output .= "X-Gnome-Title=$name\n";
      $output .= "NumberOfEntries=" . count($entries) . "\n";
@@ -69,7 +69,7 @@ class StreamLib {
    * @param array $entries Array of arrays with keys url, title
    * @param string $name Stream name
    */
-  function stream_m3u(array $entries, $name = "playlist") {
+  function stream_m3u($entries, $name = "playlist") {
      $output = "#EXTM3U\n";
      foreach ($entries as $entry) {
         $output .= "#EXTINF:0, {$entry['title']}\n";
@@ -83,7 +83,7 @@ class StreamLib {
    * @param array $entries Array of arrays with keys url, title
    * @param string $name Stream name
    */
-  function stream_show_entries(array $entries, $name = "playlist") {
+  function stream_show_entries($entries, $name = "playlist") {
     $output = "<html><head><title>$name</title></head><body><ul>";
     foreach ($entries as $entry) {
       $output .= "<li><a href=\"{$entry['url']}\">{$entry['title']}</a>\n";
