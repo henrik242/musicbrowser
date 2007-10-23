@@ -19,31 +19,47 @@
  *   Copyright 2006, 2007 Henrik Brautaset Aronsen
  */
 
-$rootUrl = "http://" . $_SERVER['HTTP_HOST'] . "/mp3";
-$rootPath = "/slottet/mp3";
+# Where these scripts are available from a browser
+$rootUrl = "http://my.server.com/musicbrowser";
+
+# Where your music is available on the file system
+$rootPath = "/home/username/mp3";
+
+# The template file
 $templateFile = "template.inc";
 
 $musicBrowser = new MusicBrowser($rootUrl, $rootPath, $templateFile);
-$musicBrowser->set_home("Hjem");
+$musicBrowser->set_home("Home");
 $musicBrowser->show_page();
 exit(0);
 
+# End of configurable options
+
 class MusicBrowser {
   
-  private $columns = 5;
-  private $errorMsg = "";
-  private $headingThreshold = 15;
-  private $homeName = "Home";
-  private $pathinfo, $rootPath, $rootUrl, $scriptName, $streamLib;
-  private $suffixes = array("mp3", "ogg", "mp4", "m4a"); 
-  private $streamType, $templateFile;
+  var $columns = 5;
+  var $errorMsg = "";
+  var $headingThreshold = 15;
+  var $homeName = "Home";
+  var $pathinfo, $rootPath, $rootUrl, $scriptName, $streamLib;
+  var $suffixes = array("mp3", "ogg", "mp4", "m4a"); 
+  var $streamType, $templateFile;
   
   /**
    * @param string $rootUrl Root URL
    * @param string $rootPath Root path on file system
    * @param string $templateFile The template file
    */  
-  function __construct($rootUrl, $rootPath, $templateFile) {
+  function MusicBrowser($rootUrl, $rootPath, $templateFile) {
+    if (!is_dir($rootPath)) {
+      echo "ERROR: The \$rootPath \"$rootPath\" isn't readable";
+      exit(0);
+    }
+    if (!is_readable($templateFile)) {
+      echo "ERROR: The \$templateFile \"$templateFile\" isn't readable";
+      exit(0);
+    }
+    
     #ini_set("error_reporting", E_ALL);
     ini_set("display_errors", 0);
     require_once('streamlib.php');
@@ -108,7 +124,7 @@ class MusicBrowser {
    *
    * @return string Formatted HTML with folder content
    */
-  private function show_folder(array $items) {
+  function show_folder($items) {
 
     $output = "";
     if (count($items) > 0) {
@@ -156,14 +172,11 @@ class MusicBrowser {
    * Group $items by initial, with a minimum amount in each group 
    * @see $this->headingThreshold
    */
-  private function group_items(array $items) {
+  function group_items($items) {
     natcasesort($items);
     $groupList = $group = array();
     $to = $from = "";
     foreach ($items as $item) {
-      if (is_dir("{$this->pathinfo['full']}/$item") || 
-          (is_file("{$this->pathinfo['full']}/$item") && $this->valid_suffix($item))) {
-          
         $current = strtoupper($item{0});
         
         if (strlen($from) == 0) {
@@ -178,7 +191,6 @@ class MusicBrowser {
           $from = $current;
         }
         $to = $current;
-      }
     }
     if (count($group) > 0) {
       $groupList = $this->add_group($groupList, $group, $from, $to);
@@ -186,7 +198,7 @@ class MusicBrowser {
     return $groupList;
   }
 
-  private function add_group(array $groupList, array $group, $from, $to) {
+  function add_group($groupList, $group, $from, $to) {
     if ($from == $to) {
       $groupList[$from] = $group;
     } else { 
@@ -198,7 +210,7 @@ class MusicBrowser {
   /**
    * @return array Associative array with 'm3u' and 'pls', where one of the values are 'CHECKED'
    */
-  private function stream_selector() {
+  function stream_selector() {
     if ($this->streamType == "pls") {
       return array('pls' => 'CHECKED', 'm3u' => '');
     } else {
@@ -210,14 +222,15 @@ class MusicBrowser {
    * List folder content.
    * @return array An associative array with 'numfiles' (number of files only) and 'items' (all allowed file and folder names)
    */
-  private function list_folder($fullPath) {
+  function list_folder($fullPath) {
     $folderHandle = dir($fullPath);
     $items = array();
     $numFiles = 0;
     while (false !== ($entry = $folderHandle->read())) {
-      if (!($entry{0} == ".")) {
+      $fullEntry = "$fullPath/$entry";
+      if (!($entry{0} == ".") && (is_dir($fullEntry) || $this->valid_suffix($entry))) {
         $items[] = $entry;
-        if (is_file("$fullPath/$entry")) {
+        if (is_file($fullEntry)) {
           $numFiles++;
         }
       }
@@ -230,7 +243,7 @@ class MusicBrowser {
    * Fetches streamtype from $_POST or $_COOKIE.
    * @return string streamtype as 'pls' or 'm3u'
    */
-  private function set_stream_type() {
+  function set_stream_type() {
     $streamType = 'm3u';
     if (isset($_POST['streamtype'])) {
       if ($_POST['streamtype'] == 'pls') {
@@ -246,7 +259,7 @@ class MusicBrowser {
   /**
    * @return string Formatted HTML with cover image (if any)
    */
-  private function show_cover() {
+  function show_cover() {
     
     $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
                   "folder.gif", "Folder.gif");
@@ -264,7 +277,7 @@ class MusicBrowser {
   /**
    * @return string Formatted HTML with bread crumbs for folder
    */
-  private function show_header($numfiles) {
+  function show_header($numfiles) {
     $path = $this->pathinfo['relative'];
     $parts = $this->explode_modified($path);
     
@@ -298,7 +311,7 @@ class MusicBrowser {
    *
    * @return boolean True if valid.
    */
-  private function valid_suffix($entry) {
+  function valid_suffix($entry) {
 
     foreach ($this->suffixes as $suffix) {
       if (preg_match("/\." . $suffix . "$/i", $entry)) {
@@ -311,7 +324,7 @@ class MusicBrowser {
   /**
    * Stream folder or file.
    */
-  private function stream_all($type) {
+  function stream_all($type) {
     $fullPath = $this->pathinfo['full'];
     $name = pathinfo($fullPath, PATHINFO_BASENAME);
     $items = array();
@@ -320,7 +333,7 @@ class MusicBrowser {
       # $fullPath is a folder with mp3's
       $folderHandle = dir($fullPath);
       while (false !== ($entry = $folderHandle->read())) {
-        if ($this->valid_suffix($entry)) {
+        if (!($entry{0} == '.') && $this->valid_suffix($entry)) {
           $items[] = "{$this->pathinfo['relative']}/$entry";
           continue;
         }
@@ -347,7 +360,7 @@ class MusicBrowser {
   /**
    * Info for entry in playlist.
    */
-  private function entry_info($item) {
+  function entry_info($item) {
     $parts = $this->explode_modified($item);
     $fullUrl = "";
     foreach ($parts as $part) {
@@ -360,7 +373,7 @@ class MusicBrowser {
   /**
    * As explode with / as delimiter, but trims slashes and returns array() instead array with empty element.
    */
-  private function explode_modified($thePath) {
+  function explode_modified($thePath) {
     $parts = explode("/", trim($thePath, "/"));
     if (count($parts) == 1 && strlen($parts[0]) == 0) {
       return array();
@@ -372,14 +385,14 @@ class MusicBrowser {
   /**
    * Add message to be displayed as error.
    */
-  private function add_error($msg) {
+  function add_error($msg) {
     $this->errorMsg .= "$msg<br>\n";
   }
 
   /**
    * Try to resolve safe path.
    */
-  private function resolve_path($rootPath) {
+  function resolve_path($rootPath) {
     $relPath = "";
     if (isset($_GET['path'])) {
       # Most iso-8859-1 letters, minus " and \
