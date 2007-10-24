@@ -286,10 +286,11 @@ class MusicBrowser {
     } else {
       $items = array("<b>{$this->homeName}</b>");
     }
-    $encodedPath = "";
+    $currentPath = "";
     for ($i = 0; $i < count($parts); $i++) {
-      $encodedPath .= $this->path_encode("/" . $parts[$i]);
+      $currentPath .= "/{$parts[$i]}";
       if ($i < count($parts) - 1) {
+        $encodedPath = $this->path_encode($currentPath);
         $items[] = "<b><a href=\"{$this->scriptName}?path=$encodedPath\">{$parts[$i]}</a></b>\n";
       } else {
         $items[] = "<b>{$parts[$i]}</b>";
