@@ -141,7 +141,7 @@ class MusicBrowser {
           for ($i = 0; $i < $this->columns; $i++) {
             $cell = $row + ($i * $rows);
             $item = @ $group[$cell];
-            $urlPath = rawurlencode("{$this->pathinfo['relative']}/$item");
+            $urlPath = $this->path_encode("{$this->pathinfo['relative']}/$item");
             
             $entry .= '<td valign="top">';
             if (empty($item)) {
@@ -266,7 +266,7 @@ class MusicBrowser {
     $output = "";              
     foreach ($covers as $cover) {
       if (is_readable("{$this->pathinfo['full']}/$cover")) {
-        $link = "{$this->scriptName}?path=" . urlencode("{$this->pathinfo['relative']}/$cover");
+        $link = "{$this->scriptName}?path=" . $this->path_encode("{$this->pathinfo['relative']}/$cover");
         $output .= "<a href=\"$link\"><img border=0 src=\"$link\" width=150 height=150 align=left></a>";
         break;
       }
@@ -288,7 +288,7 @@ class MusicBrowser {
     }
     $encodedPath = "";
     for ($i = 0; $i < count($parts); $i++) {
-      $encodedPath .= rawurlencode("/" . $parts[$i]);
+      $encodedPath .= $this->path_encode("/" . $parts[$i]);
       if ($i < count($parts) - 1) {
         $items[] = "<b><a href=\"{$this->scriptName}?path=$encodedPath\">{$parts[$i]}</a></b>\n";
       } else {
@@ -361,12 +361,10 @@ class MusicBrowser {
    * Info for entry in playlist.
    */
   function entry_info($item) {
-    $parts = $this->explode_modified($item);
-    $fullUrl = "";
-    foreach ($parts as $part) {
-       $fullUrl .= "/" . rawurlencode($part);
-    }
-    $name = preg_replace("/\.[a-z0-9]{1,4}$/i", "", implode(" - ", $parts));
+    $search = array("|\.[a-z0-9]{1,4}$|i", "|/|");
+    $replace = array("", " - ");
+    $name = preg_replace($search, $replace, $item);
+    $fullUrl = $this->path_encode($item);
     return array('title' => $name, 'url' => "{$this->rootUrl}?path=$fullUrl");
   }
 
@@ -416,6 +414,12 @@ class MusicBrowser {
        $fullPath = $rootPath;
     }
     return array('full' => $fullPath, 'relative' => $relPath, 'root' => $rootPath);
+  }
+  
+  function path_encode($path) {
+     $search = array("|^%2F|", "|%20|", "|%2F|");
+     $replace = array("", "+", "/");
+     return preg_replace($search, $replace, rawurlencode($path)); 
   }
 }
 ?>
