@@ -41,9 +41,7 @@ TH { background-color: #DDDDDD; }
   <tr><td>&nbsp;</td></tr>
   <tr><td colspan=%columns% class=selector align=center>
     <form action="%folder_path%" method="post" name="streamtype">
-
-    <input type="radio" name="streamtype" value="m3u" onClick="document.streamtype.submit()" %m3u_checked%>m3u&nbsp;
-    <input type="radio" name="streamtype" value="pls" onClick="document.streamtype.submit()" %pls_checked%>pls
+     %stream_options%
     </form>
   </td></tr></table>
 </body></html>
