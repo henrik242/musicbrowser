@@ -97,7 +97,7 @@ class MusicBrowser {
     $replace = array($topPath, $this->columns, $coverImage, $this->errorMsg, 
                      $options, $content, $folder);
 
-    $template = file_get_contents($this->template);
+    $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
     exit(0);
   }
@@ -436,7 +436,7 @@ class MusicBrowser {
       if (is_readable("$rootPath/$getPath")) {
         $relPath = $getPath;
       } else {
-        add_error("The path <i>$getPath</i> is not readable.");
+        $this->add_error("The path <i>$getPath</i> is not readable.");
       }
     }
     $fullPath = "$rootPath/$relPath";
@@ -596,7 +596,7 @@ class StreamLib {
    * @param string $file Filename with full path
    */
   function stream_file_auto($file) {
-     $suffix = strtolower(pathInfo($file, PATHINFO_EXTENSION));
+     $suffix = strtolower(pathinfo($file, PATHINFO_EXTENSION));
 
      switch ($suffix) {
         case "mp3":
