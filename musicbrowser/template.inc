@@ -27,6 +27,8 @@
 TH { background-color: #DDDDDD; }
 .selector { font-size: 0.9em;  background-color: #DDDDDD; }
 .error { color: red; }
+.subtle { color: gray; font-size: 0.8em; text-decoration: none; }
+a.subtle:hover { text-decoration: underline; }
 -->
   </style>
 </head>
@@ -40,8 +42,10 @@ TH { background-color: #DDDDDD; }
     %content%
   <tr><td>&nbsp;</td></tr>
   <tr><td colspan=%columns% class=selector align=center>
-    <form action="%folder_path%" method="post" name="streamtype">
-     %stream_options%
-    </form>
-  </td></tr></table>
+    <form action="%folder_path%" method="post" name="streamtype">%stream_options%</form>
+  </td></tr>
+  <tr><td colspan=%columns% align=right>
+    <a class=subtle href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
+  </td></tr>
+  </table>
 </body></html>
