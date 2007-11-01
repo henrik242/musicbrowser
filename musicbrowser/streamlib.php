@@ -1,6 +1,8 @@
 <?php
 
 /**
+ *   $Id: streamlib.php,v 1.6 2007-11-01 12:31:52 mingoto Exp $
+ *
  *   This file is part of Music Browser.
  *
  *   Music Browser is free software: you can redistribute it and/or modify
@@ -67,7 +69,6 @@ class MusicBrowser {
     # If streaming is requested, do it
     if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
       $this->stream_all($_GET['type']);
-      exit(0);
     }
 
     # If the path is a file, download it
@@ -132,14 +133,15 @@ class MusicBrowser {
             } elseif (is_dir("{$this->path['full']}/$item")) {
               # Folder link
               $item = htmlentities($item);
-              $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
+              $entry .= "<a title=\"Play files in this folder\" "
+                . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\"><img border=0 src=\"play.gif\"></a>\n"
+                . "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
             } else {
               # File link
               $item = htmlentities($item);
-              $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\"><img 
-                src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n";
-              $entry .= "<a title=\"Play this song\" "
-                       ."href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\">$item</a>";
+              $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\">"
+                . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
+                . "<a title=\"Play this song\" href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\">$item</a>\n";
             }
             $entry .= "</td>\n";
           }
@@ -310,7 +312,7 @@ class MusicBrowser {
     # Output "play all" if there are files in this folder
     if ($numfiles > 0) {
       $output .= "&nbsp;&nbsp;<a href=\"{$this->url['relative']}?path=$encodedPath&amp;stream&amp;type={$this->streamType}\"><img 
-        src=\"play{$this->streamType}.gif\" border=0 title=\"Play all songs in this folder as {$this->streamType}\"
+        src=\"play.gif\" border=0 title=\"Play all songs in this folder as {$this->streamType}\"
         alt=\"Play all songs in this folder as {$this->streamType}\"></a>";
     }
     return $output;
@@ -353,7 +355,10 @@ class MusicBrowser {
       # $fullPath is an mp3  
       $items[] = $this->path['relative'];
     }
-
+    if (count($items) == 0) {
+       $this->add_error("No files to play in <b>$name</b>");
+       return;
+    }
     $entries = array();
     foreach ($items as $item) {
       $entries[] = $this->entry_info($item);
