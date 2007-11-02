@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.6 2007-11-01 12:31:52 mingoto Exp $
+ *   $Id: streamlib.php,v 1.7 2007-11-02 20:47:55 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -23,12 +23,14 @@
 
 class MusicBrowser {
   
-  var $columns = 5;
+  var $columns = 5;   # minimum 3
   var $errorMsg = "";
   var $headingThreshold = 15;
   var $homeName, $path, $url, $streamLib;
   var $suffixes, $streamType, $template;
   var $player;
+  var $thumbSize = 150;
+  var $maxPlaylistSize;  
   
   /**
    * @param array $config Assosciative array with configuration
@@ -36,7 +38,7 @@ class MusicBrowser {
    */  
   function MusicBrowser($config) {
     #ini_set("error_reporting", E_ALL);
-    ini_set("display_errors", 0);
+    ini_set("display_errors", 1);
 
     if (!is_dir($config['path'])) {
       $this->fatal_error("The \$config['path'] \"{$config['path']}\" isn't readable");
@@ -49,6 +51,7 @@ class MusicBrowser {
     $this->homeName = $config['homeName'];
     $this->template = $config['template'];
     $this->player = $config['player'];
+    $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
     $this->path = $this->resolve_path($config['path']);
     
@@ -78,15 +81,15 @@ class MusicBrowser {
     } 
 
     # List of files and folders
-    $folder = $this->list_folder($fullPath);
+    $entries = $this->list_folder($fullPath);
 
     # Set stream type as pls or m3u from $_POST or $_COOKIE
     $this->streamType = $this->set_stream_type();
 
     # get all content for template
     $coverImage = $this->show_cover();
-    $topPath = $this->show_header($folder['numfiles']);
-    $content = $this->show_folder($folder['items']);
+    $topPath = $this->show_header();
+    $content = $this->show_folder($entries);
     $options = $this->show_options();
 
     if (isset($_GET['message'])) {
@@ -94,9 +97,9 @@ class MusicBrowser {
     }
     $folder = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']);
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
-                    "/%stream_options%/", "/%content%/", "/%folder_path%/");
+                    "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/");
     $replace = array($topPath, $this->columns, $coverImage, $this->errorMsg, 
-                     $options, $content, $folder);
+                     $options, $content, $folder, $this->thumbSize);
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -134,7 +137,8 @@ class MusicBrowser {
               # Folder link
               $item = htmlentities($item);
               $entry .= "<a title=\"Play files in this folder\" "
-                . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\"><img border=0 src=\"play.gif\"></a>\n"
+                . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\"><img border=0 "
+                . "alt=\"|&gt; \" src=\"play.gif\"></a>\n"
                 . "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
             } else {
               # File link
@@ -224,21 +228,20 @@ class MusicBrowser {
    * List folder content.
    * @return array An associative array with 'numfiles' (number of files only) and 'items' (all allowed file and folder names)
    */
-  function list_folder($fullPath) {
-    $folderHandle = dir($fullPath);
-    $items = array();
+  function list_folder($path) {
+    $folderHandle = dir($path);
+    $entries = array();
     $numFiles = 0;
     while (false !== ($entry = $folderHandle->read())) {
-      $fullEntry = "$fullPath/$entry";
-      if (!($entry{0} == ".") && (is_dir($fullEntry) || $this->valid_suffix($entry))) {
-        $items[] = $entry;
-        if (is_file($fullEntry)) {
-          $numFiles++;
-        }
+      $fullPath = "$path/$entry";
+      if (!($entry{0} == '.') && 
+          (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($fullPath))) ) {
+        $entries[] = $entry;
       }
     }
     $folderHandle->close();
-    return array('numfiles' => $numFiles, 'items' => $items);
+    natcasesort($entries);
+    return $entries;
   }
 
   /**
@@ -279,7 +282,8 @@ class MusicBrowser {
     foreach ($covers as $cover) {
       if (is_readable("{$this->path['full']}/$cover")) {
         $link = "{$this->url['relative']}?path=" . $this->path_encode("{$this->path['relative']}/$cover");
-        $output .= "<a href=\"$link\"><img border=0 src=\"$link\" width=150 height=150 align=left></a>";
+        $output .= "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
+                 . "height={$this->thumbSize} align=left></a>";
         break;
       }
     }
@@ -289,7 +293,7 @@ class MusicBrowser {
   /**
    * @return string Formatted HTML with bread crumbs for folder
    */
-  function show_header($numfiles) {
+  function show_header() {
     $path = $this->path['relative'];
     $parts = $this->explode_modified($path);
     if (count($parts) > 0) {
@@ -309,12 +313,10 @@ class MusicBrowser {
     }
     $output = implode(" &raquo; ", $items);
 
-    # Output "play all" if there are files in this folder
-    if ($numfiles > 0) {
-      $output .= "&nbsp;&nbsp;<a href=\"{$this->url['relative']}?path=$encodedPath&amp;stream&amp;type={$this->streamType}\"><img 
-        src=\"play.gif\" border=0 title=\"Play all songs in this folder as {$this->streamType}\"
-        alt=\"Play all songs in this folder as {$this->streamType}\"></a>";
-    }
+    # Output "play all"
+    $output .= "&nbsp;&nbsp;<a href=\"{$this->url['relative']}?path=$encodedPath&amp;stream&amp;type={$this->streamType}\"><img 
+      src=\"play.gif\" border=0 title=\"Play all songs in this folder as {$this->streamType}\"
+      alt=\"Play all songs in this folder as {$this->streamType}\"></a>";
     return $output;
   }
 
@@ -333,6 +335,25 @@ class MusicBrowser {
   }
 
   /**
+   * Find all items in a folder recursively.
+   */
+  function folder_items($folder, $allItems) {
+    $fullPath = "{$this->path['root']}/$folder";
+    $entries = $this->list_folder($fullPath);
+    foreach ($entries as $entry) {
+      if (count($allItems) >= $this->maxPlaylistSize) {
+        return $allItems;
+      }
+      if (is_file("$fullPath/$entry")) {
+        $allItems[] = "$folder/$entry";
+      } else {
+        $allItems = $this->folder_items("$folder/$entry", $allItems);
+      }
+    }
+    return $allItems;
+  }
+
+  /**
    * Stream folder or file.
    */
   function stream_all($type) {
@@ -341,18 +362,9 @@ class MusicBrowser {
     $items = array();
     
     if (is_dir($fullPath)) {
-      # $fullPath is a folder with mp3's
-      $folderHandle = dir($fullPath);
-      while (false !== ($entry = $folderHandle->read())) {
-        if (!($entry{0} == '.') && $this->valid_suffix($entry)) {
-          $items[] = "{$this->path['relative']}/$entry";
-          continue;
-        }
-      }
+      $items = $this->folder_items($this->path['relative'], $items);
       natcasesort($items);
-      $folderHandle->close();
     } else {
-      # $fullPath is an mp3  
       $items[] = $this->path['relative'];
     }
     if (count($items) == 0) {
