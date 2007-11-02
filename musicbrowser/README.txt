@@ -15,6 +15,13 @@ Installation example (Debian)
 3) $ cp -R musicbrowser /var/www/
    Music Browser is now available at http://yourhost/musicbrowser/
 
+Local playback on the webserver
+-------------------------------
+- Crude example: set "player" => "killall madplay; /usr/bin/madplay" in
+  index.php
+- Make sure the web server user (e.g. www-data) has write permission to the
+  sound device.
+
 Changelog
 ---------
 0.3
