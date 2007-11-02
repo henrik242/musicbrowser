@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.7 2007-11-02 20:47:55 mingoto Exp $
+ *   $Id: streamlib.php,v 1.8 2007-11-02 21:41:20 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -69,13 +69,12 @@ class MusicBrowser {
   function show_page() {
     $fullPath = $this->path['full'];
     
-    # If streaming is requested, do it
     if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
+      # If streaming is requested, do it
       $this->stream_all($_GET['type']);
-    }
-
-    # If the path is a file, download it
-    if (is_file($fullPath)) {
+      $fullPath = $this->path['full'];
+    } elseif (is_file($fullPath)) {
+      # If the path is a file, download it
       $this->streamLib->stream_file_auto($fullPath);
       exit(0);
     } 
@@ -295,7 +294,10 @@ class MusicBrowser {
    */
   function show_header() {
     $path = $this->path['relative'];
-    $parts = $this->explode_modified($path);
+    $parts = explode("/", trim($path, "/ "));
+    if ($parts[0] == '') {
+      $parts = array();
+    }
     if (count($parts) > 0) {
       $items = array("<b><a href=\"{$this->url['relative']}?path=\">{$this->homeName}</a></b>");
     } else {
@@ -414,23 +416,11 @@ class MusicBrowser {
     } else {
       $message = "Error playing file(s) on server.  Check the error log.";
     }
-    $folder = preg_replace("|/?[^/]*$|", "", $this->path['relative']);
-    $encodedPath = $this->path_encode($folder);
-    $message = $this->path_encode($message);
-    header("Location: {$this->url['full']}?path=$encodedPath&message=$message");
-    exit(0);
-  }
-
-  /**
-   * As explode with / as delimiter, but trims slashes and returns array() instead array with empty element.
-   */
-  function explode_modified($thePath) {
-    $parts = explode("/", trim($thePath, "/"));
-    if (count($parts) == 1 && strlen($parts[0]) == 0) {
-      return array();
-    } else {
-      return $parts;
-    }
+    $this->add_error($message);
+    
+    # path might be a file, use the folder instead
+    $this->path['relative'] = preg_replace("|/[^/]*$|", "", $this->path['relative']);
+    $this->path['full'] = preg_replace("|/[^/]*$|", "", $this->path['full']);
   }
 
   /**
