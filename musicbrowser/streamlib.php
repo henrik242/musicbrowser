@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.8 2007-11-02 21:41:20 mingoto Exp $
+ *   $Id: streamlib.php,v 1.9 2007-11-02 21:44:54 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -212,15 +212,6 @@ class MusicBrowser {
       $groupList["$from&ndash;$to"] = $group;
     }
     return $groupList;  
-  }
-
-  /**
-   * @return array Associative array with 'm3u' and 'pls', where one of the values are 'CHECKED'
-   */
-  function stream_selector() {
-    $select = array('pls' => '', 'm3u' => '', 'player' => '');
-    $select[$this->streamType] = 'CHECKED';
-    return $select;
   }
 
   /**
