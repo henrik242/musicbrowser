@@ -17,15 +17,20 @@ Installation example (Debian)
 
 Changelog
 ---------
-0.3 - Lower PHP requirement to 4.2
-    - Basic support for server side playback
-    - Prettier URLs
-    - Move MusicBrowser class from index.php to streamlib.php
+0.3
+- lower PHP requirement to 4.2
+- very basic support for server side playback
+- prettier URLs
+- move MusicBrowser class from index.php to streamlib.php
+- play icon for all folders
+- play folders recursively
 
-0.2 - Lower PHP requirement to 4.3
+0.2
+- lower PHP requirement to 4.3
 
-0.1 - Initial release
-    - Requires PHP 5.1
+0.1
+- initial release
+- requires PHP 5.1
 
 Contact
 -------

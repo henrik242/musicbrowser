@@ -23,29 +23,34 @@
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
   <style type="text/css">
 <!-- 
-.topcolor { background-color: #EEEEBB; }
-TH { background-color: #DDDDDD; }
-.selector { font-size: 0.9em;  background-color: #DDDDDD; }
+.header { background-color: #EEEEBB; }
+th { background-color: #DDDDDD; }
+.footer { background-color: #DDDDDD; font-size: 0.8em; }
 .error { color: red; }
-.subtle { color: gray; font-size: 0.8em; text-decoration: none; }
+.subtle { color: #777777; text-decoration: none; }
 a.subtle:hover { text-decoration: underline; }
 -->
   </style>
 </head>
 <body>
   <p><div class=error>%error_msg%</div>
-  <table align=center width="95%">
-  <tr><td align=center colspan=%columns% class="topcolor">
-    %cover_image%
-    <br><p>%top_path%</p><br>
+  <table align=center width="95%"><tr><td colspan=%columns%>
+    <!-- header -->
+    <table class=header width="100%"><tr><td width=%thumb_size%>
+        %cover_image%
+      </td><td align=center>
+        <br><p>%top_path%</p><br>
+    </td><td width=%thumb_size%></td></tr></table>
+    <!-- end header -->
   </td></tr>
     %content%
-  <tr><td>&nbsp;</td></tr>
-  <tr><td colspan=%columns% class=selector align=center>
-    <form action="%folder_path%" method="post" name="streamtype">%stream_options%</form>
-  </td></tr>
-  <tr><td colspan=%columns% align=right>
-    <a class=subtle href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
-  </td></tr>
-  </table>
+  <tr><td>&nbsp;</td></tr><tr><td colspan=%columns%>
+    <!-- footer -->
+    <table class=footer width="100%"><tr><td width=%thumb_size%></td><td align=center>
+        <form action="%folder_path%" method=post name=streamtype>%stream_options%</form>
+      </td><td width=%thumb_size% align=right>
+        <a class=subtle href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
+    </td></tr></table>
+    <!-- end footer -->
+  </td></tr></table>
 </body></html>

@@ -1,12 +1,12 @@
 <?php
 $config = array(
+  # Where your music is available on the file system
+  'path' => "/mnt/my_music/",
+
   # Public URL for this script.  Leave blank to auto-detect.
   # This URL will be used in the playlist files (.m3u/.pls).
   'url' => "",
   
-  # Where your music is available on the file system
-  'path' => "/mnt/my_music/",
-
   # The template file
   'template' => "template.inc",
   
@@ -14,7 +14,10 @@ $config = array(
   'fileTypes' =>  array("mp3", "ogg", "mp4", "m4a"),
   
   'homeName' => "Home",
-  
+
+  # Maximum number of entries in a playlist
+  'maxPlaylistSize' => 100,
+    
   # Play music on the server.  Full path to player with options.  Leave blank to disable.
   'player' => "",
 );
