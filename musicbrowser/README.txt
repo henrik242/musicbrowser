@@ -17,13 +17,32 @@ Installation example (Debian)
 
 Local playback on the webserver
 -------------------------------
+- If your webserver has a soundcard with loudspeakers connected, you should
+  be able to use a local player.
 - Crude example: set "player" => "killall madplay; /usr/bin/madplay" in
   index.php
 - Make sure the web server user (e.g. www-data) has write permission to the
-  sound device.
+  sound device, e.g. by "sudo chmod a+w /dev/dsp*"
+
+Playback via slimserver
+-----------------------
+- Make sure your slimserver is running
+- Navigate to Slimserver -> Browse -> Music Folder
+- Right-click on the play symbol on a folder and select "copy link location"
+- Paste the link into a text editor.  It should look something like this:
+  "http://myserver:9000/status_header.html?p0=playlist&p1=play&p2=file%3A%2F%2F%2Fmnt%2Fmy_music%2FAbsurd%2520Minds&player=00%3A04%3A20%3A07%3A62%3A46"
+- Copy the part before the folder name (here: "Absurd%2520Minds") into the config 'slimserverUrl':
+  "http://myserver:9000/status_header.html?p0=playlist&p1=play&p2=file%3A%2F%2F%2Fmnt%2Fmy_music"
+- Copy the part after the folder name into the config 'slimserverUrlSuffix':
+  "&player=00%3A04%3A20%3A07%3A62%3A46"
+- Music Browser should support Slimserver playback now.
 
 Changelog
 ---------
+0.4-CVS
+- Slimserver support
+- Fix quoting bug when magic_quotes_sybase was enabled
+
 0.3
 - lower PHP requirement to 4.2
 - very basic support for server side playback
