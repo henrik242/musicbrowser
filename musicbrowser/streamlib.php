@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.9 2007-11-02 21:44:54 mingoto Exp $
+ *   $Id: streamlib.php,v 1.10 2007-11-04 18:08:32 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -30,7 +30,8 @@ class MusicBrowser {
   var $suffixes, $streamType, $template;
   var $player;
   var $thumbSize = 150;
-  var $maxPlaylistSize;  
+  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
+  var $allowLocal = false;
   
   /**
    * @param array $config Assosciative array with configuration
@@ -38,7 +39,7 @@ class MusicBrowser {
    */  
   function MusicBrowser($config) {
     #ini_set("error_reporting", E_ALL);
-    ini_set("display_errors", 1);
+    ini_set("display_errors", 0);
 
     if (!is_dir($config['path'])) {
       $this->fatal_error("The \$config['path'] \"{$config['path']}\" isn't readable");
@@ -51,10 +52,19 @@ class MusicBrowser {
     $this->homeName = $config['homeName'];
     $this->template = $config['template'];
     $this->player = $config['player'];
+    $this->slimserverUrl = $config['slimserverUrl'];
+    $this->slimserverUrlSuffix = $config['slimserverUrlSuffix'];
     $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
     $this->path = $this->resolve_path($config['path']);
     
+    foreach ($config['allowLocal'] as $host) {
+      if (empty($host)) continue;
+      if (preg_match($host, gethostbyaddr($_SERVER['REMOTE_ADDR'])) > 0
+          || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
+        $this->allowLocal = true;
+      }
+    }
     $this->streamLib = new StreamLib();
   }
 
@@ -91,9 +101,6 @@ class MusicBrowser {
     $content = $this->show_folder($entries);
     $options = $this->show_options();
 
-    if (isset($_GET['message'])) {
-      $this->add_error($_GET['message']);
-    }
     $folder = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']);
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
                     "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/");
@@ -158,18 +165,28 @@ class MusicBrowser {
 
   function show_options() {
     $select = array('pls' => "", 'm3u' => "");
-    if (strlen($this->player) > 0) {
+    if (strlen($this->player) > 0 && $this->allowLocal) {
       $select['player'] = "";
     }
-    $select[$this->streamType] = 'CHECKED';
+    if (strlen($this->slimserverUrl) > 0 && $this->allowLocal) {
+      $select['slim'] = "";
+    }
+    if (array_key_exists($this->streamType, $select)) {
+      $select[$this->streamType] = 'CHECKED';
+    }
     $output = ""; 
     foreach ($select as $type => $checked) {
-      if ($type == "player") {
-        $display = "Play on server";
-      } else {
-        $display = $type;
+      switch ($type) {
+        case "player":
+          $display = "Play on server";
+          break;
+        case "slim":
+          $display = "Play on slimserver";
+          break;
+        default:
+          $display = $type;
       }
-      $output .= "<input $checked type=\"radio\" name=\"streamtype\" value=\"$type\" "
+      $output .= "<input $checked type=radio name=streamtype value=$type "
                . " onClick=\"document.streamtype.submit()\">$display\n";
     }
     return $output;
@@ -250,10 +267,13 @@ class MusicBrowser {
         $streamType = "";
       }
     }
+    
     switch ($streamType) {
+      case 'player':
+      case 'slim':
+        if (!$this->allowLocal) return 'm3u';
       case 'pls':
       case 'm3u':
-      case 'player':
         if ($setcookie) setcookie('streamtype', $streamType);
         return $streamType;
       default:
@@ -350,6 +370,11 @@ class MusicBrowser {
    * Stream folder or file.
    */
   function stream_all($type) {
+    if ($type == "slim" && $this->allowLocal) {
+      $this->play_slimserver($this->path['relative']);
+      return;
+    }
+    
     $fullPath = $this->path['full'];
     $name = pathinfo($fullPath, PATHINFO_BASENAME);
     $items = array();
@@ -377,7 +402,9 @@ class MusicBrowser {
         $this->streamLib->stream_pls($entries, $name);
         break;
       case "player":
-        $this->play_files($items);
+        if ($this->allowLocal) {
+          $this->play_files($items);
+        }
         break;
     }
   }
@@ -408,10 +435,42 @@ class MusicBrowser {
       $message = "Error playing file(s) on server.  Check the error log.";
     }
     $this->add_error($message);
-    
-    # path might be a file, use the folder instead
+    $this->strip_file_from_path();
+  }
+
+  /**
+   * Strip file from path.  Used when path is already sent to a remote player, and we want to
+   * continue execution of the script (i.e. list files in the folder).
+   */
+  function strip_file_from_path() {
     $this->path['relative'] = preg_replace("|/[^/]*$|", "", $this->path['relative']);
     $this->path['full'] = preg_replace("|/[^/]*$|", "", $this->path['full']);
+  }
+
+  function play_slimserver($item) {
+     $url = $this->slimserverUrl . urlencode("/$item") . $this->slimserverUrlSuffix; 
+     $data = $this->http_get($url);
+     if (strlen($data) == 0) {
+       $this->add_error("Error reaching slimserver");
+     }
+     $this->strip_file_from_path();
+  }
+
+  function http_get($url) {
+    if (!ini_get('allow_url_fopen')) {
+      $this->add_error("'allow_url_fopen' in php.ini is set to false");
+      return;
+    }
+    if (!($fp = fopen($url, "r"))) {
+      $this->add_error("Could not open URL " . $url);
+      return;
+    }
+    $data = "";
+    while ($d = fread($fp, 4096)) { 
+      $data .= $d; 
+    };
+    fclose($fp); 
+    return $data;
   }
 
   /**
@@ -429,7 +488,7 @@ class MusicBrowser {
     if (isset($_GET['path'])) {
       # Most iso-8859-1 letters, minus " and \
       $getPath = preg_replace("/[^\x20\x21\x23-\x7e\xa0-\xff]/", "", $_GET['path']);
-      $getPath = preg_replace('/\\\/', "", $getPath);
+      $getPath = stripslashes($getPath);
       
       if (is_readable("$rootPath/$getPath")) {
         $relPath = $getPath;
