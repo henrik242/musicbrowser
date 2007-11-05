@@ -42,6 +42,7 @@ Changelog
 0.4-CVS
 - Slimserver support
 - Fix quoting bug when magic_quotes_sybase was enabled
+- Fix display error when file names are utf-8 encoded
 
 0.3
 - lower PHP requirement to 4.2

@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.10 2007-11-04 18:08:32 mingoto Exp $
+ *   $Id: streamlib.php,v 1.11 2007-11-05 08:15:49 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -141,14 +141,12 @@ class MusicBrowser {
               $entry .= "&nbsp;";
             } elseif (is_dir("{$this->path['full']}/$item")) {
               # Folder link
-              $item = htmlentities($item);
               $entry .= "<a title=\"Play files in this folder\" "
                 . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\"><img border=0 "
                 . "alt=\"|&gt; \" src=\"play.gif\"></a>\n"
                 . "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
             } else {
               # File link
-              $item = htmlentities($item);
               $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\">"
                 . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
                 . "<a title=\"Play this song\" href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\">$item</a>\n";
