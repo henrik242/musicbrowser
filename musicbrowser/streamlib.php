@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.11 2007-11-05 08:15:49 mingoto Exp $
+ *   $Id: streamlib.php,v 1.12 2007-11-10 18:50:56 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -41,13 +41,11 @@ class MusicBrowser {
     #ini_set("error_reporting", E_ALL);
     ini_set("display_errors", 0);
 
-    if (!is_dir($config['path'])) {
-      $this->fatal_error("The \$config['path'] \"{$config['path']}\" isn't readable");
-    }
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
     
+    $this->path = $this->resolve_path($config['path']);
     $this->suffixes = $config['fileTypes'];
     $this->homeName = $config['homeName'];
     $this->template = $config['template'];
@@ -56,7 +54,6 @@ class MusicBrowser {
     $this->slimserverUrlSuffix = $config['slimserverUrlSuffix'];
     $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
-    $this->path = $this->resolve_path($config['path']);
     
     foreach ($config['allowLocal'] as $host) {
       if (empty($host)) continue;
@@ -103,9 +100,11 @@ class MusicBrowser {
 
     $folder = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']);
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
-                    "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/");
+                    "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
+                    "/%rss_url%/", "/%rss_title%/");
     $replace = array($topPath, $this->columns, $coverImage, $this->errorMsg, 
-                     $options, $content, $folder, $this->thumbSize);
+                     $options, $content, $folder, $this->thumbSize,
+                     htmlentities("$folder&stream&type=rss"), "{$this->path['relative']} podcast");
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -261,13 +260,13 @@ class MusicBrowser {
       $setcookie = true;
     } elseif (isset($_COOKIE['streamtype'])) {
       $streamType = $_COOKIE['streamtype'];
-      if (strlen($this->player) == 0) {
-        $streamType = "";
-      }
     }
     
     switch ($streamType) {
+      case 'rss':
+        return 'rss';
       case 'player':
+        if (strlen($this->player) == 0) return 'm3u';
       case 'slim':
         if (!$this->allowLocal) return 'm3u';
       case 'pls':
@@ -283,19 +282,23 @@ class MusicBrowser {
    * @return string Formatted HTML with cover image (if any)
    */
   function show_cover() {
-    
+    $link = $this->cover_image();
+    if (!empty($link)) {
+      return "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
+                 . "height={$this->thumbSize} align=left></a>";
+    }
+    return "";
+  }
+  
+  function cover_image() {
     $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
                   "folder.gif", "Folder.gif");
-    $output = "";              
     foreach ($covers as $cover) {
       if (is_readable("{$this->path['full']}/$cover")) {
-        $link = "{$this->url['relative']}?path=" . $this->path_encode("{$this->path['relative']}/$cover");
-        $output .= "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
-                 . "height={$this->thumbSize} align=left></a>";
-        break;
+        return "{$this->url['relative']}?path=" . $this->path_encode("{$this->path['relative']}/$cover");
       }
     }
-    return $output;
+    return "";
   }
 
   /**
@@ -393,11 +396,15 @@ class MusicBrowser {
     }
 
     switch ($type) {
+      case "rss":
+        $this->streamLib->playlist_rss($entries, $name, "{$this->url['root']}/{$_SERVER['REQUEST_URI']}",
+                                       "{$this->url['root']}/{$this->cover_image()}");
+        break;
       case "m3u":
-        $this->streamLib->stream_m3u($entries, $name);
+        $this->streamLib->playlist_m3u($entries, $name);
         break;
       case "pls":
-        $this->streamLib->stream_pls($entries, $name);
+        $this->streamLib->playlist_pls($entries, $name);
         break;
       case "player":
         if ($this->allowLocal) {
@@ -410,12 +417,16 @@ class MusicBrowser {
   /**
    * Info for entry in playlist.
    */
-  function entry_info($item) {
+  function entry_info($item, $withTimestamp = false) {
     $search = array("|\.[a-z0-9]{1,4}$|i", "|/|");
     $replace = array("", " - ");
     $name = preg_replace($search, $replace, $item);
     $fullUrl = $this->path_encode($item);
-    return array('title' => $name, 'url' => "{$this->url['full']}?path=$fullUrl");
+    $entry = array('title' => $name, 'url' => "{$this->url['full']}?path=$fullUrl");
+    if ($withTimestamp) {
+      $entry['timestamp'] = filectime("{$this->path['root']}/$item");
+    }
+    return $entry;
   }
 
   /**
@@ -482,6 +493,13 @@ class MusicBrowser {
    * Try to resolve safe path.
    */
   function resolve_path($rootPath) {
+    if (!empty($rootPath) && !is_dir($rootPath)) {
+      $this->fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
+    }
+    if (empty($rootPath)) {
+       $rootPath = getcwd();
+    }
+    
     $relPath = "";
     if (isset($_GET['path'])) {
       # Most iso-8859-1 letters, minus " and \
@@ -536,7 +554,7 @@ class StreamLib {
    * @param array $entries Array of arrays with keys moreinfo, url, starttime, duration, title, author & copyright
    * @param string $name Stream name
    */
-  function stream_asx($entries, $name = "playlist") {
+  function playlist_asx($entries, $name = "playlist") {
 
      $output = "<asx version=\"3.0\">\n";
      foreach ($entries as $entry) {
@@ -559,15 +577,15 @@ class StreamLib {
    * @param array $entries Array of arrays with keys url, title
    * @param string $name Stream name
    */
-  function stream_pls($entries, $name = "playlist") {
+  function playlist_pls($entries, $name = "playlist") {
      $output = "[playlist]\n";
      $output .= "X-Gnome-Title=$name\n";
      $output .= "NumberOfEntries=" . count($entries) . "\n";
      $counter = 1;
      foreach ($entries as $entry) {
-        $output .= "File$counter={$entry['url']}\n";
-        $output .= "Title$counter={$entry['title']}\n";
-        $output .= "Length$counter=-1\n";
+        $output .= "File$counter={$entry['url']}\n"
+                 . "Title$counter={$entry['title']}\n"
+                 . "Length$counter=-1\n";
         $counter++;
      }
      
@@ -580,14 +598,44 @@ class StreamLib {
    * @param array $entries Array of arrays with keys url, title
    * @param string $name Stream name
    */
-  function stream_m3u($entries, $name = "playlist") {
-     $output = "#EXTM3U\n";
-     foreach ($entries as $entry) {
-        $output .= "#EXTINF:0, {$entry['title']}\n";
-        $output .= "{$entry['url']}\n";
-     }
+  function playlist_m3u($entries, $name = "playlist") {
+    $output = "#EXTM3U\n";
+    foreach ($entries as $entry) {
+      $output .= "#EXTINF:0, {$entry['title']}\n"
+               . "{$entry['url']}\n";
+    }
      
-     $this->stream_content($output, "$name.m3u", "audio/x-mpegurl");
+    $this->stream_content($output, "$name.m3u", "audio/x-mpegurl");
+  }
+
+  /**
+   * Aka podcast.
+   *
+   * @param array $entries Array of arrays with keys url, title, timestamp
+   * @param string $name Stream name
+   * @param string $link The link to this rss
+   * @param string $image Album cover (optional)
+   */
+  function playlist_rss($entries, $name = "playlist", $link, $image = "") {
+    $link = htmlentities($link);
+    $output = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
+            . "<rss xmlns:itunes=\"http://www.itunes.com/DTDs/Podcast-1.0.dtd\" version=\"2.0\">\n"
+            . "  <channel><title>$name</title><link>$link</link>\n";
+    if (!empty($image)) {
+      $output .= "  <image><url>$image</url></image>\n";
+    }
+    foreach ($entries as $entry) {
+      $date = date('r', $entry['timestamp']);
+      $url = htmlentities($entry['url']);
+      $title = htmlentities($entry['title']);
+      $output .= "  <item><title>$title</title>\n"
+               . "    <enclosure url=\"$url\" type=\"audio/mpeg\" />\n"
+               . "    <guid>$url</guid>\n"
+               . "    <pubDate>$date</pubDate>\n"
+               . "  </item>\n";
+    }
+    $output .= "</channel></rss>\n";
+    $this->stream_content($output, "$name.rss", "text/xml", "inline");
   }
 
   /**
@@ -609,8 +657,8 @@ class StreamLib {
    * @param string $name Stream name with suffix
    * @param string $mimetype Mime type
    */
-  function stream_content($content, $name, $mimetype) {
-     header("Content-Disposition: attachment; filename=\"$name\"", true);
+  function stream_content($content, $name, $mimetype, $disposition = "attachment") {
+     header("Content-Disposition: $disposition; filename=\"$name\"", true);
      header("Content-Type: $mimetype", true);
      header("Content-Length: " . strlen($content));
      print $content;
