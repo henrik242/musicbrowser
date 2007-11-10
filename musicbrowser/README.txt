@@ -39,10 +39,15 @@ Playback via Slimserver
 
 Changelog
 ---------
+0.5-CVS
+- All folders are available as podcasts (rss feeds)
+- Bugfix: slimserver checkbox didn't work when server playback was disabled
+
 0.4
 - Rudimentary Slimserver support
 - Fix quoting bug when magic_quotes_sybase was enabled
 - Fix display error when file names are utf-8 encoded
+- Possibility to limit slimserver and server side playback to allowed hosts
 
 0.3
 - lower PHP requirement to 4.2

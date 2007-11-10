@@ -1,6 +1,7 @@
 <?php
 $config = array(
   # Where your music is available on the file system
+  # Leave empty to use the current directory.
   'path' => "/mnt/my_music/",
 
   # Public URL for this script. This URL will be used in the playlist files (.m3u/.pls).
