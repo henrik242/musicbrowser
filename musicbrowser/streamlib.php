@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.12 2007-11-10 18:50:56 mingoto Exp $
+ *   $Id: streamlib.php,v 1.13 2007-11-10 18:56:31 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -391,8 +391,12 @@ class MusicBrowser {
        return;
     }
     $entries = array();
+    $withTimestamp = false;
+    if ($type == 'rss') {
+      $withTimestamp = true;
+    } 
     foreach ($items as $item) {
-      $entries[] = $this->entry_info($item);
+      $entries[] = $this->entry_info($item, $withTimestamp);
     }
 
     switch ($type) {
