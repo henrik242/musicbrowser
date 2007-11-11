@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.14 2007-11-11 14:08:46 mingoto Exp $
+ *   $Id: streamlib.php,v 1.15 2007-11-11 14:46:40 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -165,7 +165,7 @@ class MusicBrowser {
   }
 
   function show_options() {
-    $select = array('pls' => "", 'm3u' => "");
+    $select = array('pls' => "", 'm3u' => "", 'asx' => "");
     if (strlen($this->player) > 0 && $this->allowLocal) {
       $select['player'] = "";
     }
@@ -273,6 +273,7 @@ class MusicBrowser {
         if (strlen($this->player) == 0) return 'm3u';
       case 'slim':
         if (!$this->allowLocal) return 'm3u';
+      case 'asx':
       case 'pls':
       case 'm3u':
         if ($setcookie) setcookie('streamtype', $streamType);
@@ -414,6 +415,9 @@ class MusicBrowser {
         break;
       case "pls":
         $this->streamLib->playlist_pls($entries, $name);
+        break;
+      case "asx":
+        $this->streamLib->playlist_asx($entries, $name);
         break;
       case "player":
         if ($this->allowLocal) {

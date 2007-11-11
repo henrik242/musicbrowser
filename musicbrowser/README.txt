@@ -44,6 +44,7 @@ Changelog
 - Bugfix: slimserver checkbox didn't work when server playback was disabled
 - Use the current directory if config 'path' is empty
 - Simplify GET statement
+- Enable .asx playlists
 
 0.4
 - Rudimentary Slimserver support
