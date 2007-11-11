@@ -39,7 +39,7 @@ Playback via Slimserver
 
 Changelog
 ---------
-0.5-CVS
+0.5
 - All folders are available as podcasts (aka rss feeds)
 - Bugfix: slimserver checkbox didn't work when server playback was disabled
 - Use the current directory if config 'path' is empty
