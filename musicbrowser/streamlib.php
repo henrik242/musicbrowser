@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.13 2007-11-10 18:56:31 mingoto Exp $
+ *   $Id: streamlib.php,v 1.14 2007-11-11 14:08:46 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -24,7 +24,7 @@
 class MusicBrowser {
   
   var $columns = 5;   # minimum 3
-  var $errorMsg = "";
+  var $infoMessage = "";
   var $headingThreshold = 15;
   var $homeName, $path, $url, $streamLib;
   var $suffixes, $streamType, $template;
@@ -75,10 +75,10 @@ class MusicBrowser {
    */
   function show_page() {
     $fullPath = $this->path['full'];
-    
+
     if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
-      $this->stream_all($_GET['type']);
+      $this->stream_all($_GET['stream']);
       $fullPath = $this->path['full'];
     } elseif (is_file($fullPath)) {
       # If the path is a file, download it
@@ -98,13 +98,17 @@ class MusicBrowser {
     $content = $this->show_folder($entries);
     $options = $this->show_options();
 
+    if (isset($_GET['message'])) {
+      $this->add_message($_GET['message']);
+    }
+
     $folder = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']);
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
                     "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
                     "/%rss_url%/", "/%rss_title%/");
-    $replace = array($topPath, $this->columns, $coverImage, $this->errorMsg, 
+    $replace = array($topPath, $this->columns, $coverImage, $this->infoMessage, 
                      $options, $content, $folder, $this->thumbSize,
-                     htmlentities("$folder&stream&type=rss"), "{$this->path['relative']} podcast");
+                     htmlentities("$folder&stream=rss"), "{$this->path['relative']} podcast");
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -141,14 +145,14 @@ class MusicBrowser {
             } elseif (is_dir("{$this->path['full']}/$item")) {
               # Folder link
               $entry .= "<a title=\"Play files in this folder\" "
-                . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\"><img border=0 "
+                . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream={$this->streamType}\"><img border=0 "
                 . "alt=\"|&gt; \" src=\"play.gif\"></a>\n"
                 . "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
             } else {
               # File link
               $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\">"
                 . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
-                . "<a title=\"Play this song\" href=\"{$this->url['relative']}?path=$urlPath&amp;stream&amp;type={$this->streamType}\">$item</a>\n";
+                . "<a title=\"Play this song\" href=\"{$this->url['relative']}?path=$urlPath&amp;stream={$this->streamType}\">$item</a>\n";
             }
             $entry .= "</td>\n";
           }
@@ -328,7 +332,7 @@ class MusicBrowser {
     $output = implode(" &raquo; ", $items);
 
     # Output "play all"
-    $output .= "&nbsp;&nbsp;<a href=\"{$this->url['relative']}?path=$encodedPath&amp;stream&amp;type={$this->streamType}\"><img 
+    $output .= "&nbsp;&nbsp;<a href=\"{$this->url['relative']}?path=$encodedPath&amp;stream={$this->streamType}\"><img 
       src=\"play.gif\" border=0 title=\"Play all songs in this folder as {$this->streamType}\"
       alt=\"Play all songs in this folder as {$this->streamType}\"></a>";
     return $output;
@@ -387,7 +391,7 @@ class MusicBrowser {
       $items[] = $this->path['relative'];
     }
     if (count($items) == 0) {
-       $this->add_error("No files to play in <b>$name</b>");
+       $this->add_message("No files to play in <b>$name</b>");
        return;
     }
     $entries = array();
@@ -401,7 +405,8 @@ class MusicBrowser {
 
     switch ($type) {
       case "rss":
-        $this->streamLib->playlist_rss($entries, $name, "{$this->url['root']}/{$_SERVER['REQUEST_URI']}",
+        $url = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']) . "&stream=rss";
+        $this->streamLib->playlist_rss($entries, $name, $url,
                                        "{$this->url['root']}/{$this->cover_image()}");
         break;
       case "m3u":
@@ -443,39 +448,45 @@ class MusicBrowser {
     }
     system("{$this->player} $args >/dev/null 2>/dev/null &", $ret);
     if ($ret === 0) {
-      $message = "Playing requested file(s) on server";
+      $this->add_message("Playing requested file(s) on server");
     } else {
-      $message = "Error playing file(s) on server.  Check the error log.";
+      $this->add_message("Error playing file(s) on server.  Check the error log.");
     }
-    $this->add_error($message);
-    $this->strip_file_from_path();
-  }
-
-  /**
-   * Strip file from path.  Used when path is already sent to a remote player, and we want to
-   * continue execution of the script (i.e. list files in the folder).
-   */
-  function strip_file_from_path() {
-    $this->path['relative'] = preg_replace("|/[^/]*$|", "", $this->path['relative']);
-    $this->path['full'] = preg_replace("|/[^/]*$|", "", $this->path['full']);
+    $this->reload_page();
   }
 
   function play_slimserver($item) {
      $url = $this->slimserverUrl . urlencode("/$item") . $this->slimserverUrlSuffix; 
      $data = $this->http_get($url);
      if (strlen($data) == 0) {
-       $this->add_error("Error reaching slimserver");
+       $this->add_message("Error reaching slimserver");
+     } else {
+       $this->add_message("Playing requested file(s) on slimserver");
      }
-     $this->strip_file_from_path();
+     $this->reload_page();
+  }
+  
+  /**
+   * Redirect to current folder page.
+   */
+  function reload_page() {
+    $path = $this->path['relative'];
+    if (is_file($this->path['full'])) {
+      $path = preg_replace("|/[^/]+$|", "", $path);
+    }
+    $url = "{$this->url['full']}?path=" . $this->path_encode($path);
+    $url .= "&message=" . urlencode($this->infoMessage);
+    header("Location: $url");
+    exit(0);
   }
 
   function http_get($url) {
     if (!ini_get('allow_url_fopen')) {
-      $this->add_error("'allow_url_fopen' in php.ini is set to false");
+      $this->add_message("'allow_url_fopen' in php.ini is set to false");
       return;
     }
     if (!($fp = fopen($url, "r"))) {
-      $this->add_error("Could not open URL " . $url);
+      $this->add_message("Could not open URL " . $url);
       return;
     }
     $data = "";
@@ -487,10 +498,10 @@ class MusicBrowser {
   }
 
   /**
-   * Add message to be displayed as error.
+   * Add message to be displayed on top.
    */
-  function add_error($msg) {
-    $this->errorMsg .= "$msg<br>\n";
+  function add_message($msg) {
+    $this->infoMessage .= "$msg<br>\n";
   }
 
   /**
@@ -513,7 +524,7 @@ class MusicBrowser {
       if (is_readable("$rootPath/$getPath")) {
         $relPath = $getPath;
       } else {
-        $this->add_error("The path <i>$getPath</i> is not readable.");
+        $this->add_message("The path <i>$getPath</i> is not readable.");
       }
     }
     $fullPath = "$rootPath/$relPath";
@@ -622,6 +633,7 @@ class StreamLib {
    */
   function playlist_rss($entries, $name = "playlist", $link, $image = "") {
     $link = htmlentities($link);
+    $name = htmlentities($name);
     $output = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
             . "<rss xmlns:itunes=\"http://www.itunes.com/DTDs/Podcast-1.0.dtd\" version=\"2.0\">\n"
             . "  <channel><title>$name</title><link>$link</link>\n";
