@@ -20,6 +20,11 @@ $config = array(
   # Maximum number of entries in a playlist
   'maxPlaylistSize' => 100,
 
+  # Whether to enable pls/m3u/asx playlists or not
+  'enablePls' => true,
+  'enableM3u' => true,
+  'enableAsx' => false,
+
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
   #  'slimserverUrl' => 'http://myserver:9000/status_header.html?p0=playlist&p1=play&p2=file%3A%2F%2F%2Fmnt%2Fmy_music'
   #  'slimserverUrlSuffix' => '&player=00%3A05%3A21%3A07%3A61%3A43'
