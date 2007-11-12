@@ -39,6 +39,9 @@ Playback via Slimserver
 
 Changelog
 ---------
+0.6-CVS
+- Bugfix: podcast/rss didn't work in PHP4.x
+
 0.5
 - All folders are available as podcasts (aka rss feeds)
 - Bugfix: slimserver checkbox didn't work when server playback was disabled

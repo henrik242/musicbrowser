@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.15 2007-11-11 14:46:40 mingoto Exp $
+ *   $Id: streamlib.php,v 1.16 2007-11-12 08:41:59 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -407,8 +407,8 @@ class MusicBrowser {
     switch ($type) {
       case "rss":
         $url = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']) . "&stream=rss";
-        $this->streamLib->playlist_rss($entries, $name, $url,
-                                       "{$this->url['root']}/{$this->cover_image()}");
+        $image = $this->url['root'] . "/" . $this->cover_image();
+        $this->streamLib->playlist_rss($entries, $name, $url, $image);
         break;
       case "m3u":
         $this->streamLib->playlist_m3u($entries, $name);
