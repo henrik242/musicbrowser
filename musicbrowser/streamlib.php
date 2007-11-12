@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.16 2007-11-12 08:41:59 mingoto Exp $
+ *   $Id: streamlib.php,v 1.17 2007-11-12 09:27:34 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -32,6 +32,7 @@ class MusicBrowser {
   var $thumbSize = 150;
   var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $allowLocal = false;
+  var $playlists = array();
   
   /**
    * @param array $config Assosciative array with configuration
@@ -54,6 +55,9 @@ class MusicBrowser {
     $this->slimserverUrlSuffix = $config['slimserverUrlSuffix'];
     $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
+    if ($config['enableM3u']) $this->playlists[] = "m3u";
+    if ($config['enableAsx']) $this->playlists[] = "asx";
+    if ($config['enablePls']) $this->playlists[] = "pls";
     
     foreach ($config['allowLocal'] as $host) {
       if (empty($host)) continue;
@@ -165,7 +169,10 @@ class MusicBrowser {
   }
 
   function show_options() {
-    $select = array('pls' => "", 'm3u' => "", 'asx' => "");
+    $select = array();
+    foreach ($this->playlists as $list) {
+      $select[$list] = "";
+    }
     if (strlen($this->player) > 0 && $this->allowLocal) {
       $select['player'] = "";
     }
@@ -175,7 +182,7 @@ class MusicBrowser {
     if (array_key_exists($this->streamType, $select)) {
       $select[$this->streamType] = 'CHECKED';
     }
-    $output = ""; 
+    $output = "";
     foreach ($select as $type => $checked) {
       switch ($type) {
         case "player":
@@ -187,8 +194,8 @@ class MusicBrowser {
         default:
           $display = $type;
       }
-      $output .= "<input $checked type=radio name=streamtype value=$type "
-               . " onClick=\"document.streamtype.submit()\">$display\n";
+      $output .= "<input type=radio name=streamtype value=$type "
+               . " onClick=\"document.streamtype.submit()\" $checked>$display\n";
     }
     return $output;
   }
@@ -268,19 +275,29 @@ class MusicBrowser {
     
     switch ($streamType) {
       case 'rss':
-        return 'rss';
+        break;
       case 'player':
-        if (strlen($this->player) == 0) return 'm3u';
+        if (strlen($this->player) == 0) $streamType = '';
+        break;
       case 'slim':
-        if (!$this->allowLocal) return 'm3u';
+        if (!$this->allowLocal) $streamType = '';
+        break;
       case 'asx':
       case 'pls':
       case 'm3u':
-        if ($setcookie) setcookie('streamtype', $streamType);
-        return $streamType;
+        if (in_array($streamType, $this->playlists)) {
+          if ($setcookie) setcookie('streamtype', $streamType);
+        } else {
+          $streamType = '';
+        }
+        break;
       default:
-        return 'm3u';
+        $streamType = '';
     }
+    if (empty($streamType) && count($this->playlists) > 0) {
+      $streamType = $this->playlists[0];
+    }
+    return $streamType;
   }
 
   /**

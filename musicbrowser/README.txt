@@ -41,6 +41,7 @@ Changelog
 ---------
 0.6-CVS
 - Bugfix: podcast/rss didn't work in PHP4.x
+- Ability to enable/disable each playlist type in config (asx/pls/m3u)
 
 0.5
 - All folders are available as podcasts (aka rss feeds)
