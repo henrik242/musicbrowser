@@ -37,9 +37,18 @@ Playback via Slimserver
   "&player=00%3A04%3A20%3A07%3A62%3A46"
 - Music Browser should support Slimserver playback now.
 
+Troubleshooting
+---------------
+- I only get a blank screen!
+Set 'debug' => true in index.php, you might see some helpful info.  Also
+look into your web server's error.log.
+
+- Only 130 seconds of my songs are played!
+Set max_execution_time = 0 in php.ini.
+
 Changelog
 ---------
-0.6-CVS
+0.6
 - Bugfix: podcast/rss didn't work in PHP4.x
 - Ability to enable/disable each playlist type in config (asx/pls/m3u)
 
