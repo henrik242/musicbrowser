@@ -41,6 +41,9 @@ $config = array(
   #  'player' => "killall madplay; /usr/bin/madplay",
   # Leave blank to disable.
   'player' => "",
+  
+  # Set to true to display PHP errors and notices.  Should be set to false.
+  'debug' => false,
 );
 
 require('streamlib.php');

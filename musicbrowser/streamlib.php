@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.17 2007-11-12 09:27:34 mingoto Exp $
+ *   $Id: streamlib.php,v 1.18 2007-11-13 20:51:33 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -23,7 +23,7 @@
 
 class MusicBrowser {
   
-  var $columns = 5;   # minimum 3
+  var $columns = 5;
   var $infoMessage = "";
   var $headingThreshold = 15;
   var $homeName, $path, $url, $streamLib;
@@ -39,9 +39,15 @@ class MusicBrowser {
    *                      Keys: url, path, fileTypes, template, homeName
    */  
   function MusicBrowser($config) {
-    #ini_set("error_reporting", E_ALL);
-    ini_set("display_errors", 0);
-
+    if ($config['debug']) {
+      ini_set("error_reporting", E_ALL);
+      ini_set("display_errors", 1);
+    } else {
+      ini_set("display_errors", 0);
+    }
+    if (!function_exists('preg_match')) {
+      $this->fatal_error("Your PHP installation lacks the PCRE extension");
+    }
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
@@ -776,7 +782,6 @@ class StreamLib {
   }
 
   /**
-   *
    * @see http://no.php.net/manual/en/function.readfile.php#54295
    */
   function readfile_chunked($filename, $retbytes = true) {
@@ -803,6 +808,5 @@ class StreamLib {
     }
     return $status;
   }
-
 }
 ?>
