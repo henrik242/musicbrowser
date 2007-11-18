@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.18 2007-11-13 20:51:33 mingoto Exp $
+ *   $Id: streamlib.php,v 1.19 2007-11-18 11:25:54 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -26,13 +26,11 @@ class MusicBrowser {
   var $columns = 5;
   var $infoMessage = "";
   var $headingThreshold = 15;
-  var $homeName, $path, $url, $streamLib;
-  var $suffixes, $streamType, $template;
-  var $player;
   var $thumbSize = 150;
-  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $allowLocal = false;
-  var $playlists = array();
+  var $homeName, $path, $url, $streamLib, $suffixes, $streamType, $template;
+  var $player, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
+  var $enabledPlay = array();
   
   /**
    * @param array $config Assosciative array with configuration
@@ -61,9 +59,6 @@ class MusicBrowser {
     $this->slimserverUrlSuffix = $config['slimserverUrlSuffix'];
     $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
-    if ($config['enableM3u']) $this->playlists[] = "m3u";
-    if ($config['enableAsx']) $this->playlists[] = "asx";
-    if ($config['enablePls']) $this->playlists[] = "pls";
     
     foreach ($config['allowLocal'] as $host) {
       if (empty($host)) continue;
@@ -71,6 +66,13 @@ class MusicBrowser {
           || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
         $this->allowLocal = true;
       }
+    }
+    if ($config['enableM3u']) $this->enabledPlay[] = "m3u";
+    if ($config['enableAsx']) $this->enabledPlay[] = "asx";
+    if ($config['enablePls']) $this->enabledPlay[] = "pls";
+    if ($this->allowLocal) {
+      if (strlen($this->slimserverUrl) > 0) $this->enabledPlay[] = "slim";
+      if (strlen($this->player) > 0) $this->enabledPlay[] = "player";
     }
     $this->streamLib = new StreamLib();
   }
@@ -89,7 +91,7 @@ class MusicBrowser {
     if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
       $this->stream_all($_GET['stream']);
-      $fullPath = $this->path['full'];
+      exit(0);
     } elseif (is_file($fullPath)) {
       # If the path is a file, download it
       $this->streamLib->stream_file_auto($fullPath);
@@ -99,7 +101,7 @@ class MusicBrowser {
     # List of files and folders
     $entries = $this->list_folder($fullPath);
 
-    # Set stream type as pls or m3u from $_POST or $_COOKIE
+    # Set stream/play type from $_POST or $_COOKIE
     $this->streamType = $this->set_stream_type();
 
     # get all content for template
@@ -154,15 +156,18 @@ class MusicBrowser {
               $entry .= "&nbsp;";
             } elseif (is_dir("{$this->path['full']}/$item")) {
               # Folder link
+              $displayItem = $this->word_wrap($item);
               $entry .= "<a title=\"Play files in this folder\" "
                 . "href=\"{$this->url['relative']}?path=$urlPath&amp;stream={$this->streamType}\"><img border=0 "
                 . "alt=\"|&gt; \" src=\"play.gif\"></a>\n"
-                . "<a href=\"{$this->url['relative']}?path=$urlPath\">$item/</a>\n";
+                . "<a href=\"{$this->url['relative']}?path=$urlPath\">$displayItem/</a>\n";
             } else {
               # File link
+              $displayItem = $this->word_wrap($item);
               $entry .= "<a href=\"{$this->url['relative']}?path=$urlPath\">"
                 . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
-                . "<a title=\"Play this song\" href=\"{$this->url['relative']}?path=$urlPath&amp;stream={$this->streamType}\">$item</a>\n";
+                . "<a title=\"Play this song\" href=\"{$this->url['relative']}"
+                . "?path=$urlPath&amp;stream={$this->streamType}\">$displayItem</a>\n";
             }
             $entry .= "</td>\n";
           }
@@ -174,16 +179,21 @@ class MusicBrowser {
     return $output;
   }
 
+  function word_wrap($item) {
+    if (strlen($item) > 40) {
+      $item = preg_replace("/_/", " ", $item);
+      $pos = strpos($item, " ");
+      if ($pos > 40 || !$pos) {
+        $item = substr($item, 0, 30) . " " . $this->word_wrap(substr($item, 30));
+      }
+    }
+    return $item;
+  }
+
   function show_options() {
     $select = array();
-    foreach ($this->playlists as $list) {
+    foreach ($this->enabledPlay as $list) {
       $select[$list] = "";
-    }
-    if (strlen($this->player) > 0 && $this->allowLocal) {
-      $select['player'] = "";
-    }
-    if (strlen($this->slimserverUrl) > 0 && $this->allowLocal) {
-      $select['slim'] = "";
     }
     if (array_key_exists($this->streamType, $select)) {
       $select[$this->streamType] = 'CHECKED';
@@ -266,8 +276,8 @@ class MusicBrowser {
   }
 
   /**
-   * Fetches streamtype from $_POST or $_COOKIE.
-   * @return string streamtype as 'pls' or 'm3u'
+   * Fetches stream/play type from $_POST or $_COOKIE.
+   * @return string streamtype
    */
   function set_stream_type() {
     $setcookie = false;
@@ -278,30 +288,10 @@ class MusicBrowser {
     } elseif (isset($_COOKIE['streamtype'])) {
       $streamType = $_COOKIE['streamtype'];
     }
-    
-    switch ($streamType) {
-      case 'rss':
-        break;
-      case 'player':
-        if (strlen($this->player) == 0) $streamType = '';
-        break;
-      case 'slim':
-        if (!$this->allowLocal) $streamType = '';
-        break;
-      case 'asx':
-      case 'pls':
-      case 'm3u':
-        if (in_array($streamType, $this->playlists)) {
-          if ($setcookie) setcookie('streamtype', $streamType);
-        } else {
-          $streamType = '';
-        }
-        break;
-      default:
-        $streamType = '';
-    }
-    if (empty($streamType) && count($this->playlists) > 0) {
-      $streamType = $this->playlists[0];
+    if (in_array($streamType, $this->enabledPlay)) {
+      if ($setcookie) setcookie('streamtype', $streamType);
+    } else {
+      $streamType = @ $this->enabledPlay[0];
     }
     return $streamType;
   }

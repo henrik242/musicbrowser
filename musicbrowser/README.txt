@@ -48,6 +48,9 @@ Set max_execution_time = 0 in php.ini.
 
 Changelog
 ---------
+0.7-CVS
+- Bugfix: slim option wouldn't stick
+
 0.6
 - Bugfix: podcast/rss didn't work in PHP4.x
 - Ability to enable/disable each playlist type in config (asx/pls/m3u)
