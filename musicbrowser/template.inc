@@ -19,7 +19,7 @@
 -->
 <html>
 <head>
-  <title>Music browser</title>
+  <title>%display_title% %display_path%</title>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
   <link rel="alternate" title="%rss_title%" href="%rss_url%" type="application/rss+xml">  
   <style type="text/css">

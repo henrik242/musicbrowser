@@ -1,8 +1,11 @@
 Installation
 ------------
 1) Make sure your web server supports at least PHP 4.2 (PHP 5 works as well)
-2) Edit the top of index.php to match your site
-3) Copy all the files in the distribution to a web acessible path 
+2) Extract the distribution archive to a web accessible path 
+   (e.g. /var/www/musicbrowser)
+3) Edit path in index.php to match your site (e.g. /mnt/media/mp3)
+4) Enjoy your music collection through a browser 
+   (e.g. http://myserver/musicbrowser)
 
 Installation example (Debian)
 -----------------------------
@@ -27,14 +30,11 @@ Local playback on the webserver
 Playback via Slimserver
 -----------------------
 - Make sure your Slimserver is running
-- Navigate to Slimserver -> Browse -> Music Folder in a web browser
-- Right-click on the play symbol on a folder and select "copy link location"
-- Paste the link into a text editor.  It should look something like this:
-  "http://myserver:9000/status_header.html?p0=playlist&p1=play&p2=file%3A%2F%2F%2Fmnt%2Fmy_music%2FAbsurd%2520Minds&player=00%3A04%3A20%3A07%3A62%3A46"
-- Copy the part before the folder name (here: "Absurd%2520Minds") into the config 'slimserverUrl':
-  "http://myserver:9000/status_header.html?p0=playlist&p1=play&p2=file%3A%2F%2F%2Fmnt%2Fmy_music"
-- Copy the part after the folder name into the config 'slimserverUrlSuffix':
-  "&player=00%3A04%3A20%3A07%3A62%3A46"
+- Use the base URL as slimserverUrl in index.php, e.g.
+  'slimserverUrl' => "http://myserver:9000/",
+- Navigate to your Slimserver -> Player settings -> Player information. 
+  Copy the MAC address or the IP number and paste into slimserverPlayer in
+  index.php, e.g. 'slimserverPlayer' => "12:56:AE:1E:12:04",
 - Music Browser should support Slimserver playback now.
 
 Troubleshooting
@@ -50,6 +50,9 @@ Changelog
 ---------
 0.7-CVS
 - Bugfix: slim option wouldn't stick
+- Word wrap long song names
+- NB! Config update for slimserver, only base url and player id is needed now.
+- Bugfix: Empty array in allowLocal blocked everyone
 
 0.6
 - Bugfix: podcast/rss didn't work in PHP4.x

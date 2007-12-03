@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.19 2007-11-18 11:25:54 mingoto Exp $
+ *   $Id: streamlib.php,v 1.20 2007-12-03 17:57:23 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -49,22 +49,32 @@ class MusicBrowser {
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
-    
+    $this->resolve_config($config);    
+    $this->streamLib = new StreamLib();
+  }
+
+  function resolve_config($config) {
     $this->path = $this->resolve_path($config['path']);
     $this->suffixes = $config['fileTypes'];
     $this->homeName = $config['homeName'];
     $this->template = $config['template'];
     $this->player = $config['player'];
-    $this->slimserverUrl = $config['slimserverUrl'];
-    $this->slimserverUrlSuffix = $config['slimserverUrlSuffix'];
+    
+    $this->slimserverUrl = trim($config['slimserverUrl'], "/");
+    $this->slimserverPlayer = $config['slimserverPlayer'];
+    
     $this->maxPlaylistSize = $config['maxPlaylistSize'];
     $this->url = $this->resolve_url($config['url']);
     
-    foreach ($config['allowLocal'] as $host) {
-      if (empty($host)) continue;
-      if (preg_match($host, gethostbyaddr($_SERVER['REMOTE_ADDR'])) > 0
-          || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
-        $this->allowLocal = true;
+    if (count($config['allowLocal']) == 0) {
+      $this->allowLocal = true;
+    } else {
+      foreach ($config['allowLocal'] as $host) {
+        if (empty($host)) continue;
+        if (preg_match($host, gethostbyaddr($_SERVER['REMOTE_ADDR'])) > 0
+            || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
+          $this->allowLocal = true;
+        }
       }
     }
     if ($config['enableM3u']) $this->enabledPlay[] = "m3u";
@@ -74,7 +84,6 @@ class MusicBrowser {
       if (strlen($this->slimserverUrl) > 0) $this->enabledPlay[] = "slim";
       if (strlen($this->player) > 0) $this->enabledPlay[] = "player";
     }
-    $this->streamLib = new StreamLib();
   }
 
   function fatal_error($message) {
@@ -115,12 +124,16 @@ class MusicBrowser {
     }
 
     $folder = "{$this->url['full']}?path=" . $this->path_encode($this->path['relative']);
+    $displayTitle = empty($this->path['relative']) ? $this->homeName : $this->homeName . " -";
+    
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
                     "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
-                    "/%rss_url%/", "/%rss_title%/");
+                    "/%rss_url%/", "/%rss_title%/", 
+                    "/%display_title%/", "/%display_path%/");
     $replace = array($topPath, $this->columns, $coverImage, $this->infoMessage, 
                      $options, $content, $folder, $this->thumbSize,
-                     htmlentities("$folder&stream=rss"), "{$this->path['relative']} podcast");
+                     htmlentities("$folder&stream=rss"), "{$this->path['relative']} podcast",
+                     $displayTitle, $this->path['relative']);
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -290,10 +303,10 @@ class MusicBrowser {
     }
     if (in_array($streamType, $this->enabledPlay)) {
       if ($setcookie) setcookie('streamtype', $streamType);
+      return $streamType;
     } else {
-      $streamType = @ $this->enabledPlay[0];
+      return @ $this->enabledPlay[0];
     }
-    return $streamType;
   }
 
   /**
@@ -473,7 +486,9 @@ class MusicBrowser {
   }
 
   function play_slimserver($item) {
-     $url = $this->slimserverUrl . urlencode("/$item") . $this->slimserverUrlSuffix; 
+     $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . $this->path['full']);
+     $player = "&player=" . urlencode($this->slimserverPlayer);
+     $url = $this->slimserverUrl . $action . $player;
      $data = $this->http_get($url);
      if (strlen($data) == 0) {
        $this->add_message("Error reaching slimserver");
