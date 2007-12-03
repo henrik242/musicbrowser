@@ -1,3 +1,5 @@
+$Id: README.txt,v 1.19 2007-12-03 18:16:35 mingoto Exp $
+
 Installation
 ------------
 1) Make sure your web server supports at least PHP 4.2 (PHP 5 works as well)
@@ -48,7 +50,7 @@ Set max_execution_time = 0 in php.ini.
 
 Changelog
 ---------
-0.7-CVS
+0.7
 - Bugfix: slim option wouldn't stick
 - Word wrap long song names
 - NB! Config update for slimserver, only base url and player id is needed now.
