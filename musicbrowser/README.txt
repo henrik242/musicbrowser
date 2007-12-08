@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.19 2007-12-03 18:16:35 mingoto Exp $
+$Id: README.txt,v 1.20 2007-12-08 20:27:59 mingoto Exp $
 
 Installation
 ------------
@@ -48,32 +48,42 @@ look into your web server's error.log.
 - Only 130 seconds of my songs are played!
 Set max_execution_time = 0 in php.ini.
 
+- I need password controlled access.
+Your web server can provide this.  Google for ".htaccess" if you are using 
+Apache, and "auth.backend.plain.userfile" if your are using Lighttpd.
+
+- Special characters (asian etc.) look weird
+Try replacing "iso-8859-1" with "utf-8" in line 23 of template.inc
+
 Changelog
 ---------
-0.7
+0.8-CVS
+- Add style tag for file and folder items
+
+0.7 (2007-12-03)
 - Bugfix: slim option wouldn't stick
 - Word wrap long song names
 - NB! Config update for slimserver, only base url and player id is needed now.
 - Bugfix: Empty array in allowLocal blocked everyone
 
-0.6
+0.6 (2007-11-12)
 - Bugfix: podcast/rss didn't work in PHP4.x
 - Ability to enable/disable each playlist type in config (asx/pls/m3u)
 
-0.5
+0.5 (2007-11-11)
 - All folders are available as podcasts (aka rss feeds)
 - Bugfix: slimserver checkbox didn't work when server playback was disabled
 - Use the current directory if config 'path' is empty
 - Simplify GET statement
 - Enable .asx playlists
 
-0.4
+0.4 (2007-11-05)
 - Rudimentary Slimserver support
 - Fix quoting bug when magic_quotes_sybase was enabled
 - Fix display error when file names are utf-8 encoded
 - Possibility to limit slimserver and server side playback to allowed hosts
 
-0.3
+0.3 (2007-11-03)
 - lower PHP requirement to 4.2
 - very basic support for server side playback
 - prettier URLs
@@ -81,10 +91,10 @@ Changelog
 - play icon for all folders
 - play folders recursively
 
-0.2
+0.2 (2007-10-23)
 - lower PHP requirement to 4.3
 
-0.1
+0.1 (2007-10-17)
 - initial release
 - requires PHP 5.1
 
