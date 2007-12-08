@@ -30,6 +30,8 @@ th { background-color: #DDDDDD; }
 .error { color: red; }
 .subtle { color: #777777; text-decoration: none; }
 a.subtle:hover { text-decoration: underline; }
+.folder { font-size: 1em; }
+.file { font-size: 1em; }
 -->
   </style>
 </head>
