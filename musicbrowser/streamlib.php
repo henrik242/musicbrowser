@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.21 2007-12-08 20:27:59 mingoto Exp $
+ *   $Id: streamlib.php,v 1.22 2007-12-16 15:30:00 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -28,13 +28,12 @@ class MusicBrowser {
   var $headingThreshold = 15;
   var $thumbSize = 150;
   var $allowLocal = false;
-  var $homeName, $path, $url, $streamLib, $suffixes, $streamType, $template;
+  var $homeName, $path, $url, $streamLib, $fileTypes, $streamType, $template;
   var $player, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
   
   /**
    * @param array $config Assosciative array with configuration
-   *                      Keys: url, path, fileTypes, template, homeName
    */  
   function MusicBrowser($config) {
     if ($config['debug']) {
@@ -54,32 +53,43 @@ class MusicBrowser {
   }
 
   function resolve_config($config) {
-    $this->path = $this->resolve_path($config['path']);
-    $this->suffixes = $config['fileTypes'];
-    $this->homeName = $config['homeName'];
-    $this->template = $config['template'];
-    $this->player = $config['player'];
-    
-    $this->slimserverUrl = trim($config['slimserverUrl'], "/");
-    $this->slimserverPlayer = $config['slimserverPlayer'];
-    
-    $this->maxPlaylistSize = $config['maxPlaylistSize'];
-    $this->url = $this->resolve_url($config['url']);
-    
-    if (count($config['allowLocal']) == 0) {
-      $this->allowLocal = true;
-    } else {
-      foreach ($config['allowLocal'] as $host) {
-        if (empty($host)) continue;
-        if (preg_match($host, gethostbyaddr($_SERVER['REMOTE_ADDR'])) > 0
-            || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
-          $this->allowLocal = true;
-        }
+  
+    foreach ($config as $key => $value) {
+      switch ($key) {
+        case "path":
+          $this->path = $this->resolve_path($value);
+          break;
+        case "url":
+          $this->url = $this->resolve_url($value);
+          break;
+        case "allowLocal":
+          if (count($value) == 0) {
+            $this->allowLocal = true;
+          } else {
+            foreach ($value as $host) {
+              if (empty($host)) continue;
+              if (preg_match($host, gethostbyaddr($_SERVER['REMOTE_ADDR'])) > 0
+                  || preg_match($host, gethostbyname($_SERVER['REMOTE_ADDR'])) > 0) {
+                $this->allowLocal = true;
+              }
+            }
+          }
+          break;
+        case "enableM3u":
+          if ($value) $this->enabledPlay[] = "m3u";
+          break;
+        case "enableAsx":
+          if ($value) $this->enabledPlay[] = "asx";
+          break;
+        case "enablePls":  
+          if ($value) $this->enabledPlay[] = "pls";
+          break;
+        default:
+          $this->$key = $value;
+          break;
       }
     }
-    if ($config['enableM3u']) $this->enabledPlay[] = "m3u";
-    if ($config['enableAsx']) $this->enabledPlay[] = "asx";
-    if ($config['enablePls']) $this->enabledPlay[] = "pls";
+    
     if ($this->allowLocal) {
       if (strlen($this->slimserverUrl) > 0) $this->enabledPlay[] = "slim";
       if (strlen($this->player) > 0) $this->enabledPlay[] = "player";
@@ -270,16 +280,17 @@ class MusicBrowser {
 
   /**
    * List folder content.
-   * @return array An associative array with 'numfiles' (number of files only) and 'items' (all allowed file and folder names)
+   * @return array Array with all allowed file and folder names
    */
   function list_folder($path) {
     $folderHandle = dir($path);
     $entries = array();
-    $numFiles = 0;
     while (false !== ($entry = $folderHandle->read())) {
+      foreach ($this->hideItems as $hideItem) {
+        if (preg_match($hideItem, $entry)) continue 2;
+      }
       $fullPath = "$path/$entry";
-      if (!($entry{0} == '.') && 
-          (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($fullPath))) ) {
+      if (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($entry))) {
         $entries[] = $entry;
       }
     }
@@ -366,12 +377,12 @@ class MusicBrowser {
   }
 
   /**
-   * Checks if $entry has any of the $suffixes
+   * Checks if $entry has any of the $fileTypes
    *
    * @return boolean True if valid.
    */
   function valid_suffix($entry) {
-    foreach ($this->suffixes as $suffix) {
+    foreach ($this->fileTypes as $suffix) {
       if (preg_match("/\." . $suffix . "$/i", $entry)) {
          return true;
       }
@@ -447,7 +458,7 @@ class MusicBrowser {
         break;
       case "player":
         if ($this->allowLocal) {
-          $this->play_files($items);
+          $this->play_server($items);
         }
         break;
     }
@@ -469,9 +480,9 @@ class MusicBrowser {
   }
 
   /**
-   * play_files uses system() and might be VERY UNSAFE!
+   * play_server uses system() and might be VERY UNSAFE!
    */
-  function play_files($items) {
+  function play_server($items) {
     $args = "";
     foreach ($items as $item) {
       $args .= "\"{$this->path['root']}/$item\" ";
@@ -537,7 +548,7 @@ class MusicBrowser {
   }
 
   /**
-   * Try to resolve safe path.
+   * Try to resolve a safe path.
    */
   function resolve_path($rootPath) {
     if (!empty($rootPath) && !is_dir($rootPath)) {

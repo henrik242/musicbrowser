@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.20 2007-12-08 20:27:59 mingoto Exp $
+$Id: README.txt,v 1.21 2007-12-16 15:30:00 mingoto Exp $
 
 Installation
 ------------
@@ -59,6 +59,7 @@ Changelog
 ---------
 0.8-CVS
 - Add style tag for file and folder items
+- Add option to hide files and folders (see hideItems in index.php)
 
 0.7 (2007-12-03)
 - Bugfix: slim option wouldn't stick
