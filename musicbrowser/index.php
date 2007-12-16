@@ -1,6 +1,6 @@
 <?php
 $config = array(
-  # Where your music is available on the file system (e.g. /mnt/mmy_music/mp3")
+  # Where your music is available on the file system (e.g. /mnt/my_music/mp3")
   # Leave empty to use the current directory.
   'path' => "",
 
@@ -26,18 +26,22 @@ $config = array(
   'enableAsx' => false,
 
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
-  #  'slimserverUrl' => 'http://myserver:9000/'.  Leave blank to disable.
-  'slimserverUrl' => '',
+  #  'slimserverUrl' => "http://myserver:9000".  Leave blank to disable.
+  'slimserverUrl' => "",
   
   # Slimserver player ID. Either a MAC address or IP number.  See Player Settings - Player Information 
   # in the slimserver web interface, e.g. "12:34:8A:34:DE:11";
-  'slimserverPlayer' => '',
+  'slimserverPlayer' => "",
 
-  # Array of matches for hosts that are allowed to use server playback and/or slimserver playback, e.g.
+  # Array of regular expression (regexp) matches for hosts that are allowed to use server 
+  # playback and/or slimserver playback, e.g.
   #  'allowLocal' => array("/^10\.0\.0\./")
   # Leave as array() to disable.
   'allowLocal' => array(),
    
+  # Array of regular expression (regexp) matches for files/directories to hide
+  'hideItems' => array("/^lost\+found/", "/^\./"),
+  
   # Play music on the server.  Full path to player with options, e.g.
   #  'player' => "killall madplay; /usr/bin/madplay",
   # Leave blank to disable.
