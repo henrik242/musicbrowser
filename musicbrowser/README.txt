@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.24 2008-02-03 20:27:48 mingoto Exp $
+$Id: README.txt,v 1.25 2008-02-03 21:39:04 mingoto Exp $
 
 Installation
 ------------
@@ -57,7 +57,7 @@ Try replacing "iso-8859-1" with "utf-8" in line 23 of template.inc
 
 Changelog
 ---------
-0.9-CVS
+0.9 (2008-02-03)
 - Bugfix: Flash player didn't play songs with quotes (bug #1885871)
 
 0.8 (2008-02-03)
