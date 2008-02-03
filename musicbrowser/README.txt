@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.23 2008-02-03 14:08:32 mingoto Exp $
+$Id: README.txt,v 1.24 2008-02-03 20:27:48 mingoto Exp $
 
 Installation
 ------------
@@ -57,7 +57,10 @@ Try replacing "iso-8859-1" with "utf-8" in line 23 of template.inc
 
 Changelog
 ---------
-0.8
+0.9-CVS
+- Bugfix: Flash player didn't play songs with quotes (bug #1885871)
+
+0.8 (2008-02-03)
 - Add embedded audio player (JW FLV Media Player)
 - Enable direct file access when possible (makes rwd/fwd work in i.e. WinAmp)
 - Add style tag for file and folder items
