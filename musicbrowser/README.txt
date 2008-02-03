@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.21 2007-12-16 15:30:00 mingoto Exp $
+$Id: README.txt,v 1.22 2008-02-03 14:07:21 mingoto Exp $
 
 Installation
 ------------
@@ -58,6 +58,8 @@ Try replacing "iso-8859-1" with "utf-8" in line 23 of template.inc
 Changelog
 ---------
 0.8-CVS
+- Add embedded audio player (JW FLV Media Player)
+- Enable direct file access when possible (makes rwd/fwd work in i.e. WinAmp)
 - Add style tag for file and folder items
 - Add option to hide files and folders (see hideItems in index.php)
 
