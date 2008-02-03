@@ -30,8 +30,8 @@ th { background-color: #DDDDDD; }
 .error { color: red; }
 .subtle { color: #777777; text-decoration: none; }
 a.subtle:hover { text-decoration: underline; }
-.folder { font-size: 1em; }
-.file { font-size: 1em; }
+.folder { font-size: 0.8em; }
+.file { font-size: 0.8em; }
 -->
   </style>
 </head>
@@ -39,11 +39,13 @@ a.subtle:hover { text-decoration: underline; }
   <p><div class=error>%error_msg%</div>
   <table align=center width="95%"><tr><td colspan=%columns%>
     <!-- header -->
-    <table class=header width="100%"><tr><td width=%thumb_size%>
+    <table class=header width="100%"><tr><td width=%column_width%>
         %cover_image%
       </td><td align=center>
         <br><p>%top_path%</p><br>
-    </td><td width=%thumb_size%></td></tr></table>
+    </td><td align=right width=%column_width%>
+      %flash_player%
+    </td></tr></table>
     <!-- end header -->
   </td></tr>
     %content%

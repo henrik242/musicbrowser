@@ -1,7 +1,8 @@
 <?php
 $config = array(
   # Where your music is available on the file system (e.g. /mnt/my_music/mp3")
-  # Leave empty to use the current directory.
+  # Leave empty to use the current directory.  Using the current directory will 
+  # also enable fwd/rwd in players like Winamp.
   'path' => "",
 
   # Public URL for this script. This URL will be used in the playlist files (.m3u/.pls).
@@ -24,6 +25,10 @@ $config = array(
   'enablePls' => true,
   'enableM3u' => true,
   'enableAsx' => false,
+  
+  # Enable the embedded flash player?
+  'enableFlash' => true,
+
 
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
   #  'slimserverUrl' => "http://myserver:9000".  Leave blank to disable.
