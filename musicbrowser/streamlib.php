@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.23 2008-02-03 14:07:22 mingoto Exp $
+ *   $Id: streamlib.php,v 1.24 2008-02-03 20:27:48 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -219,6 +219,7 @@ class MusicBrowser {
   function play_url($urlPath) {
     $streamUrl = URL_RELATIVE . "?path=$urlPath&amp;stream";
     if (STREAMTYPE == "flash") {
+       $streamUrl = preg_replace("/%27/", "\\%27", $streamUrl);
        return "javascript:loadFile('mpl',{file:'$streamUrl=rss'})";
     }
     return "$streamUrl=" . STREAMTYPE;
