@@ -1,5 +1,6 @@
 - JW FLV Media Player is (c) Jeroen Wijering and is released under the
   Creative Commons License: http://creativecommons.org/licenses/by-nc-sa/2.0/
+  Commercial usage of this player requires a commercial license.
 
 - SWFObject is (c) 2007 Geoff Stearns and is released under the MIT License: 
   http://www.opensource.org/licenses/mit-license.php
