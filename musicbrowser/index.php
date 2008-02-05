@@ -27,8 +27,8 @@ $config = array(
   'enableAsx' => false,
   
   # Enable the embedded flash player?
+  # Commercial usage of this player requires a commercial license, see http://www.jeroenwijering.com/
   'enableFlash' => true,
-
 
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
   #  'slimserverUrl' => "http://myserver:9000".  Leave blank to disable.
