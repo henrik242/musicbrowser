@@ -51,7 +51,10 @@ $config = array(
   #  'player' => "killall madplay; /usr/bin/madplay",
   # Leave blank to disable.
   'player' => "",
-
+   
+  # Filename character set.  Usually utf-8 or iso-8859-1.
+  'charset' => "iso-8859-1",
+   
   # Set to true to display PHP errors and notices.  Should be set to false.
   'debug' => false,
 );

@@ -15,12 +15,12 @@
    You should have received a copy of the GNU General Public License
    along with Music Browser.  If not, see <http://www.gnu.org/licenses/>.
 
-   Copyright 2006, 2007 Henrik Brautaset Aronsen
+   Copyright 2006-2008 Henrik Brautaset Aronsen
 -->
 <html>
 <head>
   <title>%display_title% %display_path%</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <meta http-equiv="Content-Type" content="text/html; charset=%charset%">
   <link rel="alternate" title="%rss_title%" href="%rss_url%" type="application/rss+xml">  
   <style type="text/css">
 <!-- 
