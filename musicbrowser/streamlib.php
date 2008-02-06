@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.24 2008-02-03 20:27:48 mingoto Exp $
+ *   $Id: streamlib.php,v 1.25 2008-02-06 20:56:00 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -18,7 +18,7 @@
  *   You should have received a copy of the GNU General Public License
  *   along with Music Browser.  If not, see <http://www.gnu.org/licenses/>.
  *
- *   Copyright 2006, 2007 Henrik Brautaset Aronsen
+ *   Copyright 2006-2008 Henrik Brautaset Aronsen
  */
 
 class MusicBrowser {
@@ -29,7 +29,7 @@ class MusicBrowser {
   var $thumbSize = 150;
   var $columnWidth = 300;
   var $allowLocal = false;
-  var $homeName, $streamLib, $fileTypes, $template;
+  var $homeName, $streamLib, $fileTypes, $template, $charset;
   var $player, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
   var $directFileAccess = false;
@@ -55,15 +55,13 @@ class MusicBrowser {
   }
 
   function resolve_config($config) {
+    $this->resolve_url($config['url']); // need to resolve url before path
+    $this->resolve_path($config['path']);
   
     foreach ($config as $key => $value) {
       switch ($key) {
-        case "path":
-          if (empty($value)) $this->directFileAccess = true;
-          $this->resolve_path($value);
-          break;
-        case "url":
-          $this->resolve_url($value);
+        case 'url';
+        case 'path';
           break;
         case "allowLocal":
           if (count($value) == 0) {
@@ -103,8 +101,8 @@ class MusicBrowser {
   }
 
   function fatal_error($message) {
-      echo "<html><body text=red>ERROR: $message</body></html>";
-      exit(0);
+    echo "<html><body text=red>ERROR: $message</body></html>";
+    exit(0);
   }
   
   /**
@@ -146,11 +144,11 @@ class MusicBrowser {
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
                     "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
                     "/%rss_url%/", "/%rss_title%/", "/%flash_player%/",
-                    "/%display_title%/", "/%display_path%/", "/%column_width%/");
+                    "/%display_title%/", "/%display_path%/", "/%column_width%/", "/%charset%/");
     $replace = array($topPath, $this->columns, $coverImage, $this->infoMessage, 
                      $options, $content, $folder, $this->thumbSize,
                      htmlentities("$folder&stream=rss"), PATH_RELATIVE . " podcast", $flashPlayer,
-                     $displayTitle, PATH_RELATIVE, $this->columnWidth);
+                     $displayTitle, PATH_RELATIVE, $this->columnWidth, $this->charset);
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -210,16 +208,16 @@ class MusicBrowser {
 
   function direct_link($urlPath) {
      if ($this->directFileAccess) {
-       return $urlPath;
-     } else {
-       return $this->path_encode(URL_RELATIVE . "?path=$urlPath");
-     }
+       return $this->path_encode($urlPath);
+     } 
+     return $this->path_encode(URL_RELATIVE . "?path=$urlPath");
   }
 
   function play_url($urlPath) {
-    $streamUrl = URL_RELATIVE . "?path=$urlPath&amp;stream";
+    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;stream";
     if (STREAMTYPE == "flash") {
-       $streamUrl = preg_replace("/%27/", "\\%27", $streamUrl);
+       # TODO: Still need to encode & aka %26 + UTF-8 characters somehow
+       $streamUrl = preg_replace(array("/%27/"), array("\\%27"), $streamUrl);
        return "javascript:loadFile('mpl',{file:'$streamUrl=rss'})";
     }
     return "$streamUrl=" . STREAMTYPE;
@@ -473,7 +471,7 @@ class MusicBrowser {
       case "rss":
         $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE) . "&stream=rss";
         $image = URL_ROOT . "/" . $this->cover_image();
-        $this->streamLib->playlist_rss($entries, $name, $url, $image);
+        $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
         break;
       case "m3u":
         $this->streamLib->playlist_m3u($entries, $name);
@@ -525,7 +523,7 @@ class MusicBrowser {
     } else {
       $this->add_message("Error playing file(s) on server.  Check the error log.");
     }
-    $this->reload_page();
+    $this->reload_page(); //exits
   }
 
   function play_slimserver($item) {
@@ -538,16 +536,16 @@ class MusicBrowser {
      } else {
        $this->add_message("Playing requested file(s) on Squeezebox");
      }
-     $this->reload_page();
+     $this->reload_page(); //exits
   }
   
   /**
    * Redirect to current folder page.
    */
   function reload_page() {
-    $path = PATH_RELATIVE;
-    if (is_file(PATH_FULL)) {
-      $path = preg_replace("|/[^/]+$|", "", $path);
+    $path = "";
+    if (defined('PATH_RELATIVE') && is_file(PATH_FULL)) {
+      $path = preg_replace("|/[^/]+$|", "", PATH_RELATIVE);
     }
     $url = URL_FULL . "?path=" . $this->path_encode($path);
     $url .= "&message=" . urlencode($this->infoMessage);
@@ -583,6 +581,7 @@ class MusicBrowser {
    * Try to resolve a safe path.
    */
   function resolve_path($rootPath) {
+    if (empty($rootPath)) $this->directFileAccess = true;
     if (!empty($rootPath) && !is_dir($rootPath)) {
       $this->fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
     }
@@ -593,13 +592,15 @@ class MusicBrowser {
     $relPath = "";
     if (isset($_GET['path'])) {
       # Remove " and \
-      $getPath = preg_replace('/\x5c\x22/', '', $_GET['path']);
+      $getPath = preg_replace(array("|\\x5c|", "|\x22|", "|%5c|"), 
+                              array("", "", ""), $_GET['path']);
       $getPath = stripslashes($getPath);
       
       if (is_readable("$rootPath/$getPath")) {
         $relPath = $getPath;
       } else {
         $this->add_message("The path <i>$getPath</i> is not readable.");
+        $this->reload_page(); // exits
       }
     }
     $fullPath = "$rootPath/$relPath";
@@ -610,9 +611,9 @@ class MusicBrowser {
        $relPath = "";
        $fullPath = $rootPath;
     }
-    define('PATH_FULL', $fullPath);
-    define('PATH_RELATIVE', $relPath);
-    define('PATH_ROOT', $rootPath);
+    define('PATH_ROOT', $rootPath);    # e.g. /mnt/music
+    define('PATH_RELATIVE', $relPath); # e.g. Covenant/Stalker.mp3
+    define('PATH_FULL', $fullPath);    # e.g. /mnt/music/Covenant/Stalker.mp3
   }
   
   function resolve_url($rootUrl) {
@@ -626,9 +627,9 @@ class MusicBrowser {
       }
     } 
     $relative = $this->pathinfo_basename($_SERVER['SCRIPT_NAME']);
-    define('URL_FULL', "$root/$relative");
-    define('URL_RELATIVE', $relative);
-    define('URL_ROOT', $root);
+    define('URL_ROOT', $root);             # e.g. http://mysite.com
+    define('URL_RELATIVE', $relative);     # e.g. musicbrowser
+    define('URL_FULL', "$root/$relative"); # e.g. http://mysite.com/musicbrowser
   }
 
   function pathinfo_basename($file) {
@@ -753,10 +754,10 @@ class StreamLib {
    * @param string $link The link to this rss
    * @param string $image Album cover (optional)
    */
-  function playlist_rss($entries, $name = "playlist", $link, $image = "") {
-    $link = htmlentities($link);
-    $name = htmlentities($name);
-    $output = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
+  function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "utf-8") {
+    $link = htmlspecialchars($link);
+    $name = htmlspecialchars($name);
+    $output = "<?xml version=\"1.0\" encoding=\"$charset\"?>\n"
             . "<rss xmlns:itunes=\"http://www.itunes.com/DTDs/Podcast-1.0.dtd\" version=\"2.0\">\n"
             . "  <channel><title>$name</title><link>$link</link>\n";
     if (!empty($image)) {
@@ -764,8 +765,8 @@ class StreamLib {
     }
     foreach ($entries as $entry) {
       $date = date('r', $entry['timestamp']);
-      $url = htmlentities($entry['url']);
-      $title = htmlentities($entry['title']);
+      $url = htmlspecialchars($entry['url']);
+      $title = htmlspecialchars($entry['title']);
       $output .= "  <item><title>$title</title>\n"
                . "    <enclosure url=\"$url\" type=\"audio/mpeg\" />\n"
                . "    <guid>$url</guid>\n"

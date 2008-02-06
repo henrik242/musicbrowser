@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.25 2008-02-03 21:39:04 mingoto Exp $
+$Id: README.txt,v 1.26 2008-02-06 20:56:00 mingoto Exp $
 
 Installation
 ------------
@@ -53,10 +53,15 @@ Your web server can provide this.  Google for ".htaccess" if you are using
 Apache, and "auth.backend.plain.userfile" if your are using Lighttpd.
 
 - Special characters (asian etc.) look weird
-Try replacing "iso-8859-1" with "utf-8" in line 23 of template.inc
+Try replacing 'iso-8859-1' with 'utf-8' in the "charset" configuration in index.php
 
 Changelog
 ---------
+0.10-CVS
+- Improve file name parsing for flash player
+- Charset for rss and browser is now specified in index.php
+- Don't return everything from the root path if an illegal path is specified
+
 0.9 (2008-02-03)
 - Bugfix: Flash player didn't play songs with quotes (bug #1885871)
 
