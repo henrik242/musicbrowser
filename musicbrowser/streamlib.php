@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.26 2008-02-08 08:16:17 mingoto Exp $
+ *   $Id: streamlib.php,v 1.27 2008-02-08 23:03:24 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -216,9 +216,9 @@ class MusicBrowser {
   function play_url($urlPath) {
     $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;stream";
     if (STREAMTYPE == "flash") {
-       # TODO: Still need to encode & aka %26 + UTF-8 characters somehow
-       $streamUrl = preg_replace(array("/%27/"), array("\\%27"), $streamUrl);
-       return "javascript:loadFile('mpl',{file:'$streamUrl=rss'})";
+       # Need to encode url entities twice
+       $streamUrl = preg_replace(array("/%([0-9a-f]{2})/i"), array("%25\\1"), $streamUrl);
+       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=rss')})";
     }
     return "$streamUrl=" . STREAMTYPE;
   }
