@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.28 2008-02-08 09:41:08 mingoto Exp $
+$Id: README.txt,v 1.29 2008-02-08 23:03:24 mingoto Exp $
 
 Installation
 ------------
@@ -57,6 +57,9 @@ Try replacing 'iso-8859-1' with 'utf-8' in the "charset" configuration in index.
 
 Changelog
 ---------
+0.11-CVS
+- Bugfix: flash player support for UTF-8 link names 
+
 0.10 (2008-02-08)
 - Bugfix: Download URL's were broken (bug #1889393)
 - Improve file name parsing for flash player
