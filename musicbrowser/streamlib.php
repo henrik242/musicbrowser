@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.25 2008-02-06 20:56:00 mingoto Exp $
+ *   $Id: streamlib.php,v 1.26 2008-02-08 08:16:17 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -210,7 +210,7 @@ class MusicBrowser {
      if ($this->directFileAccess) {
        return $this->path_encode($urlPath);
      } 
-     return $this->path_encode(URL_RELATIVE . "?path=$urlPath");
+     return URL_RELATIVE . "?path=" . $this->path_encode("$urlPath");
   }
 
   function play_url($urlPath) {
