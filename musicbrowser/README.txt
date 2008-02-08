@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.27 2008-02-08 08:16:17 mingoto Exp $
+$Id: README.txt,v 1.28 2008-02-08 09:41:08 mingoto Exp $
 
 Installation
 ------------
@@ -57,7 +57,7 @@ Try replacing 'iso-8859-1' with 'utf-8' in the "charset" configuration in index.
 
 Changelog
 ---------
-0.10-CVS
+0.10 (2008-02-08)
 - Bugfix: Download URL's were broken (bug #1889393)
 - Improve file name parsing for flash player
 - Charset for rss and browser is now specified in index.php
