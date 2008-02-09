@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.27 2008-02-08 23:03:24 mingoto Exp $
+ *   $Id: streamlib.php,v 1.28 2008-02-09 16:03:10 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -140,15 +140,17 @@ class MusicBrowser {
     $folder = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
     $displayTitle = PATH_RELATIVE == "" ? $this->homeName : $this->homeName . " -";
     $flashPlayer = STREAMTYPE == "flash" ? $this->show_flashplayer() : "";
+    $rssUrl = htmlentities("$folder&stream=rss");
+    $rssTitle = PATH_RELATIVE . " podcast";
 
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
                     "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
-                    "/%rss_url%/", "/%rss_title%/", "/%flash_player%/",
-                    "/%display_title%/", "/%display_path%/", "/%column_width%/", "/%charset%/");
+                    "/%rss_url%/", "/%rss_title%/", "/%flash_player%/", "/%display_title%/", 
+                    "/%display_path%/", "/%column_width%/", "/%charset%/");
     $replace = array($topPath, $this->columns, $coverImage, $this->infoMessage, 
                      $options, $content, $folder, $this->thumbSize,
-                     htmlentities("$folder&stream=rss"), PATH_RELATIVE . " podcast", $flashPlayer,
-                     $displayTitle, PATH_RELATIVE, $this->columnWidth, $this->charset);
+                     $rssUrl, $rssTitle, $flashPlayer, $displayTitle, 
+                     PATH_RELATIVE, $this->columnWidth, $this->charset);
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -184,8 +186,9 @@ class MusicBrowser {
               $entry .= "&nbsp;";
             } elseif (is_dir(PATH_FULL . "/$item")) {
               # Folder link
+              $image = $this->show_folder_cover(PATH_RELATIVE . "/$item");
               $displayItem = $this->word_wrap($item);
-              $entry .= "<a title=\"Play files in this folder\" href=\"" . $this->play_url($urlPath) 
+              $entry .= "$image<a title=\"Play files in this folder\" href=\"" . $this->play_url($urlPath) 
                 . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
                 . "<a class=folder href=\"" . URL_RELATIVE . "?path=$urlPath\">$displayItem/</a>\n";
             } else {
@@ -217,7 +220,7 @@ class MusicBrowser {
     $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;stream";
     if (STREAMTYPE == "flash") {
        # Need to encode url entities twice
-       $streamUrl = preg_replace(array("/%([0-9a-f]{2})/i"), array("%25\\1"), $streamUrl);
+       $streamUrl = preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $streamUrl);
        return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=rss')})";
     }
     return "$streamUrl=" . STREAMTYPE;
@@ -341,11 +344,23 @@ class MusicBrowser {
     }
   }
 
+  function show_folder_cover($pathRelative) {
+    $image = "";
+    if ($this->folderCovers) {
+      $coverImage = $this->cover_image($pathRelative);
+      if (!empty($coverImage)) {
+        $urlPath = $this->path_encode($pathRelative);
+        $image ="<a href=\"" . URL_RELATIVE . "?path=$urlPath\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
+      }
+    }
+    return $image;
+  }  
+
   /**
    * @return string Formatted HTML with cover image (if any)
    */
-  function show_cover() {
-    $link = $this->cover_image();
+  function show_cover($pathRelative = PATH_RELATIVE) {
+    $link = $this->cover_image($pathRelative);
     if (!empty($link)) {
       return "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
                  . "height={$this->thumbSize} align=left></a>";
@@ -353,12 +368,12 @@ class MusicBrowser {
     return "";
   }
   
-  function cover_image() {
+  function cover_image($pathRelative = PATH_RELATIVE) {
     $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
                   "folder.gif", "Folder.gif");
     foreach ($covers as $cover) {
-      if (is_readable(PATH_FULL . "/$cover")) {
-        $pathEncoded = $this->path_encode(PATH_RELATIVE . "/$cover");
+      if (is_readable(PATH_ROOT . "/$pathRelative/$cover")) {
+        $pathEncoded = $this->path_encode("$pathRelative/$cover");
         if ($this->directFileAccess) {
           return $pathEncoded;
         } else {
@@ -470,7 +485,11 @@ class MusicBrowser {
     switch ($type) {
       case "rss":
         $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE) . "&stream=rss";
-        $image = URL_ROOT . "/" . $this->cover_image();
+        $coverImage = $this->cover_image();
+        $image = "";
+        if (!empty($coverImage)) {
+          $image = URL_ROOT . "/$coverImage";
+        }
         $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
         break;
       case "m3u":
@@ -890,7 +909,7 @@ class StreamLib {
     while (!feof($handle)) {
       $buffer = fread($handle, $chunksize);
       echo $buffer;
-      ob_flush();
+      @ob_flush();
       flush();
       if ($retbytes) {
         $cnt += strlen($buffer);
