@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.29 2008-02-08 23:03:24 mingoto Exp $
+$Id: README.txt,v 1.30 2008-02-09 16:03:10 mingoto Exp $
 
 Installation
 ------------
@@ -16,7 +16,7 @@ Installation example (Debian)
    $ sudo ln -s ../conf-available/10-fastcgi.conf .
    $ sudo /etc/init.d/lighttpd restart
 2) $ unzip musicbrowser.zip
-   $ vim musicbrowser/index.php (i to edit, esc-:wq-return to exit)
+   $ vim musicbrowser/index.php (i to edit, "esc :wq return" to exit)
 3) $ cp -R musicbrowser /var/www/
    Music Browser is now available at http://yourhost/musicbrowser/
 
@@ -39,26 +39,42 @@ Playback via Slimserver
   index.php, e.g. 'slimserverPlayer' => "12:56:AE:1E:12:04",
 - Music Browser should support Slimserver playback now.
 
+
 Troubleshooting
 ---------------
+
 - I only get a blank screen!
-Set 'debug' => true in index.php, you might see some helpful info.  Also
-look into your web server's error.log.
+Set 'debug' => true in index.php, you might see some helpful info.
+Also look into your web server's error.log.
 
 - Only 130 seconds of my songs are played!
 Set max_execution_time = 0 in php.ini.
 
 - I need password controlled access.
-Your web server can provide this.  Google for ".htaccess" if you are using 
-Apache, and "auth.backend.plain.userfile" if your are using Lighttpd.
+Your web server can provide this. Google for ".htaccess" if you are
+using Apache, and "auth.backend.plain.userfile" if you are using
+Lighttpd.
 
-- Special characters (asian etc.) look weird
-Try replacing 'iso-8859-1' with 'utf-8' in the "charset" configuration in index.php
+- Unicode characters (asian etc.) look weird.
+Try replacing "iso-8859-1" with "utf-8" in the 'charset' configuration in index.php
+
+- PLS playlists with unicode names (asian etc.) doesn't play in WinAmp.
+Somehow WinAmp doesn't like unicode PLS playlist names, I assume it is
+a bug. Switch to M3U playlist, WinAmp will read this as it should.
+Also, PLS playlists will play just fine when opened in iTunes.
+
+- I get "Could not open URL - Error reaching slimserver" when trying to
+  play on Squeezebox.
+Try opening the URL from the error message into a new browser window.
+You might see that you must lower your CSRF Protection Level in
+SqueezeCenter » Settings » Advanced » Security.
+
 
 Changelog
 ---------
 0.11-CVS
 - Bugfix: flash player support for UTF-8 link names 
+- Shows covers for all folders when new config 'folderCovers' is enabled
 
 0.10 (2008-02-08)
 - Bugfix: Download URL's were broken (bug #1889393)
@@ -116,3 +132,4 @@ Changelog
 Contact
 -------
 Contact me at musicbrowser (at) henrik (dot) synth (dot) no
+More info at http://musicbrowser.sf.net/
