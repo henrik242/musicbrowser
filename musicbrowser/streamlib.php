@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.29 2008-02-10 16:40:49 mingoto Exp $
+ *   $Id: streamlib.php,v 1.30 2008-02-10 21:09:26 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -569,8 +569,12 @@ class MusicBrowser {
    */
   function reload_page() {
     $path = "";
-    if (defined('PATH_RELATIVE') && is_file(PATH_FULL)) {
-      $path = preg_replace("|/[^/]+$|", "", PATH_RELATIVE);
+    if (defined('PATH_RELATIVE')) {
+      if (is_file(PATH_FULL)) {
+        $path = preg_replace("|/[^/]+$|", "", PATH_RELATIVE);
+      } else {
+        $path = PATH_RELATIVE;
+      }
     }
     $url = URL_FULL . "?path=" . $this->path_encode($path);
     $url .= "&message=" . urlencode($this->infoMessage);
