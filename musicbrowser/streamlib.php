@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.28 2008-02-09 16:03:10 mingoto Exp $
+ *   $Id: streamlib.php,v 1.29 2008-02-10 16:40:49 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -174,14 +174,20 @@ class MusicBrowser {
           $entry .= "<tr><th colspan={$this->columns}>$first</th></tr>\n";
         }
         $rows = ceil(count($group) / $this->columns);
+        $rowcolor = "";
         for ($row = 0; $row < $rows; $row++) {
-          $entry .= "<tr>";
+          if ($rowcolor == "odd") {
+            $rowcolor = "even";
+          } else {
+            $rowcolor = "odd";
+          }
+          $entry .= "<tr class=$rowcolor>";
           for ($i = 0; $i < $this->columns; $i++) {
             $cell = $row + ($i * $rows);
             $item = @ $group[$cell];
             $urlPath = $this->path_encode(PATH_RELATIVE . "/$item");
             
-            $entry .= '<td valign="top">';
+            $entry .= '<td class=cell>';
             if (empty($item)) {
               $entry .= "&nbsp;";
             } elseif (is_dir(PATH_FULL . "/$item")) {
@@ -373,7 +379,7 @@ class MusicBrowser {
                   "folder.gif", "Folder.gif");
     foreach ($covers as $cover) {
       if (is_readable(PATH_ROOT . "/$pathRelative/$cover")) {
-        $pathEncoded = $this->path_encode("$pathRelative/$cover");
+        $pathEncoded = $this->path_encode("$pathRelative/$cover", false);
         if ($this->directFileAccess) {
           return $pathEncoded;
         } else {

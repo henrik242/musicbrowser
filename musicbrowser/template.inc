@@ -24,18 +24,23 @@
   <link rel="alternate" title="%rss_title%" href="%rss_url%" type="application/rss+xml">  
   <style type="text/css">
 <!-- 
-.header { background-color: #EEEEBB; }
-th { background-color: #DDDDDD; }
-.footer { background-color: #DDDDDD; font-size: 0.8em; }
+.header { background-color: #91AA9D; }
+.footer { background-color: #91AA9D; font-size: 0.8em; }
+th { background-color: #3E606F; color: #FCFFF5; }
+a { color: #2222AA; }
 .error { color: red; }
-.subtle { color: #777777; text-decoration: none; }
-a.subtle:hover { text-decoration: underline; }
+.apphome { text-decoration: none; }
+a.apphome:hover { text-decoration: underline; }
 .folder { font-size: 0.8em; }
 .file { font-size: 0.8em; }
+.cell { vertical-align: bottom; }
+.odd { background-color: #FCFFF5; }
+.even { background-color: #D1DBBD; }
 -->
   </style>
 </head>
 <body>
+
   <p><div class=error>%error_msg%</div>
   <table align=center width="95%"><tr><td colspan=%columns%>
     <!-- header -->
@@ -51,10 +56,10 @@ a.subtle:hover { text-decoration: underline; }
     %content%
   <tr><td>&nbsp;</td></tr><tr><td colspan=%columns%>
     <!-- footer -->
-    <table class=footer width="100%"><tr><td width=%thumb_size%></td><td align=center>
+    <table class=footer height=10 width="100%"><tr><td width=%thumb_size%></td><td align=center>
         <form action="%folder_path%" method=post name=streamtype>%stream_options%</form>
       </td><td width=%thumb_size% align=right>
-        <a class=subtle href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
+        <a class=apphome href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
     </td></tr></table>
     <!-- end footer -->
   </td></tr></table>

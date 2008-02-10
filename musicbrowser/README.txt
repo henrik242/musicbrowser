@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.30 2008-02-09 16:03:10 mingoto Exp $
+$Id: README.txt,v 1.31 2008-02-10 16:40:48 mingoto Exp $
 
 Installation
 ------------
@@ -75,6 +75,7 @@ Changelog
 0.11-CVS
 - Bugfix: flash player support for UTF-8 link names 
 - Shows covers for all folders when new config 'folderCovers' is enabled
+- New color scheme
 
 0.10 (2008-02-08)
 - Bugfix: Download URL's were broken (bug #1889393)
