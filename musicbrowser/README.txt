@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.31 2008-02-10 16:40:48 mingoto Exp $
+$Id: README.txt,v 1.32 2008-02-10 17:08:10 mingoto Exp $
 
 Installation
 ------------
@@ -72,7 +72,7 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.11-CVS
+0.11 (2008-02-10)
 - Bugfix: flash player support for UTF-8 link names 
 - Shows covers for all folders when new config 'folderCovers' is enabled
 - New color scheme
