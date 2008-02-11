@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.30 2008-02-10 21:09:26 mingoto Exp $
+ *   $Id: streamlib.php,v 1.31 2008-02-11 08:59:03 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -694,18 +694,19 @@ function thisSong(swf) {
 function loadFile(swf,obj) {
   thisSong(swf).loadFile(obj);
 };
-var so = new SWFObject('mediaplayer.swf','mpl','{$this->columnWidth}','{$this->thumbSize}','8');
-so.addParam('allowscriptaccess','always');
-so.addParam('allowfullscreen','false');
-so.addVariable('height','{$this->thumbSize}');
-so.addVariable('width','{$this->columnWidth}');
-so.addVariable('displaywidth','0');
-so.addVariable('showstop','true');
-so.addVariable('autostart','true');
-so.addVariable('usefullscreen','false');
-so.addVariable('shuffle','false');
-so.addVariable('enablejs','true');
-so.addVariable('type','mp3');
+var so = new SWFObject('mediaplayer.swf', 'mpl', '{$this->columnWidth}', '{$this->thumbSize}', '8');
+so.addParam('allowscriptaccess', 'always');
+so.addParam('allowfullscreen', 'false');
+so.addVariable('height', '{$this->thumbSize}');
+so.addVariable('width', '{$this->columnWidth}');
+so.addVariable('displaywidth', '0');
+so.addVariable('showstop', 'true');
+so.addVariable('autostart', 'true');
+so.addVariable('usefullscreen', 'false');
+so.addVariable('shuffle', 'false');
+so.addVariable('enablejs', 'true');
+so.addVariable('type', 'mp3');
+so.addVariable('repeat', 'list');
 so.write('player');
 -->
 </script>

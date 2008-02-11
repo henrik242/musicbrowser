@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.33 2008-02-10 21:09:25 mingoto Exp $
+$Id: README.txt,v 1.34 2008-02-11 08:59:03 mingoto Exp $
 
 Installation
 ------------
@@ -74,6 +74,7 @@ Changelog
 ---------
 0.12-CVS
 - Bugfix: Redirect (e.g. when using squeezebox playback) didn't work properly
+- Bugfix: Flash player only played first song in a playlist
 
 0.11 (2008-02-10)
 - Bugfix: flash player support for UTF-8 link names 
