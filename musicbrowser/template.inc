@@ -56,7 +56,7 @@ a.apphome:hover { text-decoration: underline; }
     %content%
   <tr><td>&nbsp;</td></tr><tr><td colspan=%columns%>
     <!-- footer -->
-    <table class=footer height=10 width="100%"><tr><td width=%thumb_size%></td><td align=center>
+    <table class=footer width="100%"><tr><td width=%thumb_size%></td><td align=center>
         <form action="%folder_path%" method=post name=streamtype>%stream_options%</form>
       </td><td width=%thumb_size% align=right>
         <a class=apphome href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>

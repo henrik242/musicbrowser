@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.31 2008-02-11 08:59:03 mingoto Exp $
+ *   $Id: streamlib.php,v 1.32 2008-02-12 20:53:42 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -227,7 +227,7 @@ class MusicBrowser {
     if (STREAMTYPE == "flash") {
        # Need to encode url entities twice
        $streamUrl = preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $streamUrl);
-       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=rss')})";
+       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=asx')})";
     }
     return "$streamUrl=" . STREAMTYPE;
   }
@@ -467,6 +467,7 @@ class MusicBrowser {
     
     $fullPath = PATH_FULL;
     $name = $this->pathinfo_basename($fullPath);
+    if (empty($name)) $name = "playlist";
     $items = array();
     
     if (is_dir($fullPath)) {
@@ -505,7 +506,7 @@ class MusicBrowser {
         $this->streamLib->playlist_pls($entries, $name);
         break;
       case "asx":
-        $this->streamLib->playlist_asx($entries, $name);
+        $this->streamLib->playlist_asx($entries, $name, $this->charset);
         break;
       case "player":
         if ($this->allowLocal) {
@@ -521,7 +522,7 @@ class MusicBrowser {
   function entry_info($item, $withTimestamp = false) {
     $search = array("|\.[a-z0-9]{1,4}$|i", "|/|");
     $replace = array("", " - ");
-    $name = preg_replace($search, $replace, $item);
+    $name = preg_replace($search, $replace, trim($item, "/"));
     if ($this->directFileAccess) {
       $url = URL_ROOT . "/" . $this->path_encode($item, false);
     } else {
@@ -722,16 +723,19 @@ class StreamLib {
    * @param array $entries Array of arrays with keys moreinfo, url, starttime, duration, title, author & copyright
    * @param string $name Stream name
    */
-  function playlist_asx($entries, $name = "playlist") {
+  function playlist_asx($entries, $name = "playlist", $charset = "iso-8859-1") {
 
      $output = "<asx version=\"3.0\">\n";
+     $output .= "<param name=\"encoding\" value=\"utf-8\" />\n";
      foreach ($entries as $entry) {
+        $title = $this->convert_to_utf8($entry['title'], $charset);
+     
         $output .= "  <entry>\n";
         $output .= "    <ref href=\"{$entry['url']}\" />\n";
         if (isset($entry['moreinfo']))  $output .= "    <moreinfo href=\"{$entry['moreinfo']}\" />\n";
         if (isset($entry['starttime'])) $output .= "    <starttime value=\"{$entry['starttime']}\" />\n";
         if (isset($entry['duration']))  $output .= "    <duration value=\"{$entry['duration']}\" />\n";
-        if (isset($entry['title']))     $output .= "    <title>{$entry['title']}</title>\n";
+        if (isset($entry['title']))     $output .= "    <title>$title</title>\n";
         if (isset($entry['author']))    $output .= "    <author>{$entry['author']}</author>\n";
         if (isset($entry['copyright'])) $output .= "    <copyright>{$entry['copyright']}</copyright>\n";
         $output .= "  </entry>\n";
@@ -739,6 +743,14 @@ class StreamLib {
      $output .= "</asx>\n";
      
      $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
+  }
+
+  function convert_to_utf8($entry, $fromCharset = "iso-8859-1") {
+    if ($fromCharset != "utf-8") {
+      $entry = htmlentities($entry, ENT_COMPAT, strtoupper($fromCharset));
+      $entry = html_entity_decode($entry, ENT_COMPAT, "UTF-8");
+    }
+    return $entry;
   }
 
   /**
@@ -784,7 +796,7 @@ class StreamLib {
    * @param string $link The link to this rss
    * @param string $image Album cover (optional)
    */
-  function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "utf-8") {
+  function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "iso-8859-1") {
     $link = htmlspecialchars($link);
     $name = htmlspecialchars($name);
     $output = "<?xml version=\"1.0\" encoding=\"$charset\"?>\n"

@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.34 2008-02-11 08:59:03 mingoto Exp $
+$Id: README.txt,v 1.35 2008-02-12 20:53:41 mingoto Exp $
 
 Installation
 ------------
@@ -72,7 +72,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.12-CVS
+0.12 (2008-02-12)
+- Bugfix: Non-ascii characters wasn't displayed correctly in flashplayer and
+  asx playlists
+- Bugfix: The root playlist name was empty
+- Clean up item naming in playlist and flashplayer
 - Bugfix: Redirect (e.g. when using squeezebox playback) didn't work properly
 - Bugfix: Flash player only played first song in a playlist
 
