@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.35 2008-02-12 20:53:41 mingoto Exp $
+$Id: README.txt,v 1.36 2008-02-13 11:45:57 mingoto Exp $
 
 Installation
 ------------
@@ -72,6 +72,9 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.13-CVS
+- Rss title linked to itself
+
 0.12 (2008-02-12)
 - Bugfix: Non-ascii characters wasn't displayed correctly in flashplayer and
   asx playlists
