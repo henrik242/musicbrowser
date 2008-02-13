@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.33 2008-02-13 11:45:57 mingoto Exp $
+ *   $Id: streamlib.php,v 1.34 2008-02-13 15:12:37 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -747,8 +747,7 @@ class StreamLib {
 
   function convert_to_utf8($entry, $fromCharset = "iso-8859-1") {
     if ($fromCharset != "utf-8") {
-      $entry = htmlentities($entry, ENT_COMPAT, strtoupper($fromCharset));
-      $entry = html_entity_decode($entry, ENT_COMPAT, "UTF-8");
+      $entry = utf8_encode($entry);
     }
     return $entry;
   }

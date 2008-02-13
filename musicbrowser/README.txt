@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.36 2008-02-13 11:45:57 mingoto Exp $
+$Id: README.txt,v 1.37 2008-02-13 15:12:37 mingoto Exp $
 
 Installation
 ------------
@@ -73,7 +73,9 @@ SqueezeCenter » Settings » Advanced » Security.
 Changelog
 ---------
 0.13-CVS
-- Rss title linked to itself
+- Bugfix: UTF-8 handling in flashplayer and asx playlists would't work for
+  some versions of PHP4 in certain situations
+- Bugfix: Rss title linked to itself
 
 0.12 (2008-02-12)
 - Bugfix: Non-ascii characters wasn't displayed correctly in flashplayer and
