@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.32 2008-02-12 20:53:42 mingoto Exp $
+ *   $Id: streamlib.php,v 1.33 2008-02-13 11:45:57 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -491,7 +491,7 @@ class MusicBrowser {
 
     switch ($type) {
       case "rss":
-        $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE) . "&stream=rss";
+        $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
         $coverImage = $this->cover_image();
         $image = "";
         if (!empty($coverImage)) {
