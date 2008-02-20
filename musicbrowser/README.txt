@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.38 2008-02-20 19:50:30 mingoto Exp $
+$Id: README.txt,v 1.39 2008-02-20 19:56:07 mingoto Exp $
 
 Installation
 ------------
@@ -72,7 +72,7 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.13-CVS
+0.13 (2008-02-20)
 - Added playlist shuffle
 - Bugfix: UTF-8 handling in flashplayer and asx playlists would't work for
   some versions of PHP4 in certain situations
