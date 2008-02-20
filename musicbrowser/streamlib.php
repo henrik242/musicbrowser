@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.34 2008-02-13 15:12:37 mingoto Exp $
+ *   $Id: streamlib.php,v 1.35 2008-02-20 19:50:31 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -113,7 +113,7 @@ class MusicBrowser {
 
     if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
-      $this->stream_all($_GET['stream']);
+      $this->stream_all($_GET['stream'], @$_GET['shuffle']);
       exit(0);
     } elseif (is_file($fullPath)) {
       # If the path is a file, download it
@@ -223,7 +223,7 @@ class MusicBrowser {
   }
 
   function play_url($urlPath) {
-    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;stream";
+    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
     if (STREAMTYPE == "flash") {
        # Need to encode url entities twice
        $streamUrl = preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $streamUrl);
@@ -266,6 +266,12 @@ class MusicBrowser {
       $output .= "<input type=radio name=streamtype value=$type "
                . " onClick=\"document.streamtype.submit()\" $checked>$display\n";
     }
+    $checked = "";
+    if (SHUFFLE == 'yes') {
+      $checked = "CHECKED";
+    } 
+    $output .= "&nbsp;&nbsp;<input type=checkbox value=yes name=shuffle "
+             . " onClick=\"document.streamtype.submit()\" $checked>shuffle\n";
     return $output;
   }
 
@@ -335,18 +341,29 @@ class MusicBrowser {
    */
   function set_stream_type() {
     $setcookie = false;
-    $streamType = "";
+    $streamType = $shuffle = "";
+    
+    if (isset($_COOKIE['streamtype'])) {
+      $items = explode(';', $_COOKIE['streamtype']);
+      $streamType = @$items[0];
+      $shuffle = @$items[1];
+    }
     if (isset($_POST['streamtype'])) {
       $streamType = $_POST['streamtype'];
+      $shuffle = @$_POST['shuffle'];
       $setcookie = true;
-    } elseif (isset($_COOKIE['streamtype'])) {
-      $streamType = $_COOKIE['streamtype'];
     }
-    if (in_array($streamType, $this->enabledPlay)) {
-      if ($setcookie) setcookie('streamtype', $streamType);
-      define('STREAMTYPE', $streamType);
-    } else {
-      define('STREAMTYPE', @ $this->enabledPlay[0]);
+    if (!in_array($streamType, $this->enabledPlay)) {
+      $streamType = $this->enabledPlay[0];
+    }
+    if ($shuffle != "yes") {
+      $shuffle = "no";
+    }
+    define('STREAMTYPE', $streamType);
+    define('SHUFFLE', $shuffle);
+    
+    if ($setcookie) {
+      setcookie('streamtype', "$streamType;$shuffle");
     }
   }
 
@@ -459,7 +476,7 @@ class MusicBrowser {
   /**
    * Stream folder or file.
    */
-  function stream_all($type) {
+  function stream_all($type, $shuffle) {
     if ($type == "slim" && $this->allowLocal) {
       $this->play_slimserver(PATH_RELATIVE);
       return;
@@ -472,7 +489,11 @@ class MusicBrowser {
     
     if (is_dir($fullPath)) {
       $items = $this->folder_items(PATH_RELATIVE, $items);
-      natcasesort($items);
+      if ($shuffle == 'yes') {
+        shuffle($items);
+      } else {
+        natcasesort($items);
+      }
     } else {
       $items[] = PATH_RELATIVE;
     }
