@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.40 2008-04-13 14:38:59 mingoto Exp $
+$Id: README.txt,v 1.41 2008-04-13 16:05:25 mingoto Exp $
 
 Installation
 ------------
@@ -73,9 +73,10 @@ SqueezeCenter » Settings » Advanced » Security.
 Changelog
 ---------
 0.14-CVS
-- Workaround for php versions without utf8_encode() (e.g. fun_plug for DS323)
+- Remote control of XBMC Media Center added (http://xbmc.org/)
+- Workaround for php versions without utf8_encode() (e.g. fun_plug for DNS-323)
 - Improved play and download icons
-- NB! Small config change, one enabledPlay is used instead of serveral
+- NB! Small config change, one enabledPlay entnry is used instead of several
   enable* entries.  Please update your index.php file.
 
 0.13 (2008-02-20)
@@ -130,7 +131,7 @@ Changelog
 - Enable .asx playlists
 
 0.4 (2007-11-05)
-- Rudimentary Slimserver support
+- Rudimentary Slimserver support (http://slimdevices.org/)
 - Fix quoting bug when magic_quotes_sybase was enabled
 - Fix display error when file names are utf-8 encoded
 - Possibility to limit slimserver and server side playback to allowed hosts

@@ -37,6 +37,17 @@ $config = array(
   #'slimserverPlayer' => '81.191.140.50',
   'slimserverPlayer' => "",
 
+  # Url to the XBMC Media Center, e.g. 'xbmcUrl' => "http://10.0.0.20",
+  'xbmcUrl' => "",
+  
+  # Base path within XBMC, e.g. 'smb://my.server/music/' or 'F:\\music'
+  'xbmcPath' => "",
+  
+  # Play music on the server.  Full path to player with options, e.g.
+  #  'serverPlayer' => "killall madplay; /usr/bin/madplay",
+  # Leave blank to disable.
+  'serverPlayer' => "",
+  
   # Array of regular expression (regexp) matches for hosts that are allowed to use 
   # server playback and slimserver playback, e.g.
   #  'allowLocal' => array("/^10\.0\.0\./")
@@ -46,10 +57,6 @@ $config = array(
   # Array of regular expression (regexp) matches for files/directories to hide
   'hideItems' => array("/^lost\+found/", "/^\./"),
   
-  # Play music on the server.  Full path to player with options, e.g.
-  #  'serverPlayer' => "killall madplay; /usr/bin/madplay",
-  # Leave blank to disable.
-  'serverPlayer' => "",
 
   # Filename character set.  Usually utf-8 or iso-8859-1.
   'charset' => "iso-8859-1",
