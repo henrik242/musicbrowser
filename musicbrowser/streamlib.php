@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.35 2008-02-20 19:50:31 mingoto Exp $
+ *   $Id: streamlib.php,v 1.36 2008-04-13 14:39:00 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -21,16 +21,23 @@
  *   Copyright 2006-2008 Henrik Brautaset Aronsen
  */
 
+define('M3U', 'm3u');
+define('ASX', 'asx');
+define('FLASH', 'flash');
+define('SERVER', 'server');
+define('PLS', 'pls');
+define('SLIM', 'slim');
+define('RSS', 'rss');
+
 class MusicBrowser {
   
   var $columns = 5;
-  var $infoMessage = "";
+  var $infoMessage = '';
   var $headingThreshold = 14;
   var $thumbSize = 150;
-  var $columnWidth = 300;
   var $allowLocal = false;
   var $homeName, $streamLib, $fileTypes, $template, $charset;
-  var $player, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
+  var $serverPlayer, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
   var $directFileAccess = false;
   
@@ -39,13 +46,18 @@ class MusicBrowser {
    */  
   function MusicBrowser($config) {
     if ($config['debug']) {
-      ini_set("error_reporting", E_ALL);
-      ini_set("display_errors", 1);
+      ini_set('error_reporting', E_ALL);
+      ini_set('display_errors', 1);
     } else {
-      ini_set("display_errors", 0);
+      ini_set('display_errors', 0);
     }
     if (!function_exists('preg_match')) {
-      $this->fatal_error("Your PHP installation lacks the PCRE extension");
+      $this->fatal_error('The preg_match function does not exist. Your PHP installation lacks the PCRE extension');
+    }
+    if (!function_exists('utf8_encode')) {
+      function utf8_encode($data) { 
+        return $data; // Won't look very nice, but at least it runs
+      }
     }
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
@@ -76,27 +88,26 @@ class MusicBrowser {
             }
           }
           break;
-        case "enableM3u":
-          if ($value) $this->enabledPlay[] = "m3u";
-          break;
-        case "enableAsx":
-          if ($value) $this->enabledPlay[] = "asx";
-          break;
-        case "enablePls":  
-          if ($value) $this->enabledPlay[] = "pls";
-          break;
-        case "enableFlash":  
-          if ($value) $this->enabledPlay[] = "flash";
-          break;
         default:
           $this->$key = $value;
           break;
       }
     }
     
-    if ($this->allowLocal) {
-      if (strlen($this->slimserverUrl) > 0) $this->enabledPlay[] = "slim";
-      if (strlen($this->player) > 0) $this->enabledPlay[] = "player";
+    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) {
+      $this->unsetEnabledPlay(SLIM);
+    }
+    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) {
+      $this->unsetEnabledPlay(SERVER);
+    }
+  }
+
+  function unsetEnabledPlay($disable) {
+    foreach ($this->enabledPlay as $key => $var) {
+      if ($var == $disable) {
+        unset($this->enabledPlay[$key]);
+        break;
+      }
     }
   }
 
@@ -139,8 +150,8 @@ class MusicBrowser {
 
     $folder = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
     $displayTitle = PATH_RELATIVE == "" ? $this->homeName : $this->homeName . " -";
-    $flashPlayer = STREAMTYPE == "flash" ? $this->show_flashplayer() : "";
-    $rssUrl = htmlentities("$folder&stream=rss");
+    $flashPlayer = STREAMTYPE == FLASH ? $this->show_flashplayer() : "";
+    $rssUrl = htmlentities("$folder&stream=" . RSS);
     $rssTitle = PATH_RELATIVE . " podcast";
 
     $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
@@ -224,10 +235,10 @@ class MusicBrowser {
 
   function play_url($urlPath) {
     $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
-    if (STREAMTYPE == "flash") {
+    if (STREAMTYPE == FLASH) {
        # Need to encode url entities twice
        $streamUrl = preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $streamUrl);
-       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=asx')})";
+       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=" . FLASH . "')})";
     }
     return "$streamUrl=" . STREAMTYPE;
   }
@@ -254,10 +265,10 @@ class MusicBrowser {
     $output = "";
     foreach ($select as $type => $checked) {
       switch ($type) {
-        case "player":
+        case SERVER:
           $display = "Play on server";
           break;
-        case "slim":
+        case SLIM:
           $display = "Play on Squeezebox";
           break;
         default:
@@ -477,7 +488,7 @@ class MusicBrowser {
    * Stream folder or file.
    */
   function stream_all($type, $shuffle) {
-    if ($type == "slim" && $this->allowLocal) {
+    if ($type == SLIM && $this->allowLocal) {
       $this->play_slimserver(PATH_RELATIVE);
       return;
     }
@@ -503,7 +514,7 @@ class MusicBrowser {
     }
     $entries = array();
     $withTimestamp = false;
-    if ($type == 'rss') {
+    if ($type == RSS) {
       $withTimestamp = true;
     } 
     foreach ($items as $item) {
@@ -511,7 +522,7 @@ class MusicBrowser {
     }
 
     switch ($type) {
-      case "rss":
+      case RSS:
         $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
         $coverImage = $this->cover_image();
         $image = "";
@@ -520,16 +531,19 @@ class MusicBrowser {
         }
         $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
         break;
-      case "m3u":
+      case M3U:
         $this->streamLib->playlist_m3u($entries, $name);
         break;
-      case "pls":
+      case PLS:
         $this->streamLib->playlist_pls($entries, $name);
         break;
-      case "asx":
+      case ASX:
         $this->streamLib->playlist_asx($entries, $name, $this->charset);
         break;
-      case "player":
+      case FLASH:
+        $this->streamLib->playlist_asx($entries, $name, $this->charset, true);
+        break;
+      case SERVER:
         if ($this->allowLocal) {
           $this->play_server($items);
         }
@@ -541,9 +555,9 @@ class MusicBrowser {
    * Info for entry in playlist.
    */
   function entry_info($item, $withTimestamp = false) {
-    $search = array("|\.[a-z0-9]{1,4}$|i", "|/|");
-    $replace = array("", " - ");
-    $name = preg_replace($search, $replace, trim($item, "/"));
+    $name = preg_replace("|\.[a-z0-9]{1,4}$|i", "", $item);
+    $parts = array_reverse(preg_split("|/|", $name));
+    $name = implode(" - ", $parts);
     if ($this->directFileAccess) {
       $url = URL_ROOT . "/" . $this->path_encode($item, false);
     } else {
@@ -564,7 +578,7 @@ class MusicBrowser {
     foreach ($items as $item) {
       $args .= "\"" . PATH_ROOT . "/$item\" ";
     }
-    system("{$this->player} $args >/dev/null 2>/dev/null &", $ret);
+    system("{$this->serverPlayer} $args >/dev/null 2>/dev/null &", $ret);
     if ($ret === 0) {
       $this->add_message("Playing requested file(s) on server");
     } else {
@@ -729,6 +743,7 @@ so.addVariable('shuffle', 'false');
 so.addVariable('enablejs', 'true');
 so.addVariable('type', 'mp3');
 so.addVariable('repeat', 'list');
+so.addVariable('thumbsinplaylist', 'false');
 so.write('player');
 -->
 </script>
@@ -744,13 +759,12 @@ class StreamLib {
    * @param array $entries Array of arrays with keys moreinfo, url, starttime, duration, title, author & copyright
    * @param string $name Stream name
    */
-  function playlist_asx($entries, $name = "playlist", $charset = "iso-8859-1") {
-
+  function playlist_asx($entries, $name = "playlist", $charset = "iso-8859-1", $forceUtf8 = false) {
      $output = "<asx version=\"3.0\">\n";
-     $output .= "<param name=\"encoding\" value=\"utf-8\" />\n";
+     $forcedCharset = $forceUtf8 == true ? "utf-8" : $charset;
+     $output .= "<param name=\"encoding\" value=\"$forcedCharset\" />\n";
      foreach ($entries as $entry) {
-        $title = $this->convert_to_utf8($entry['title'], $charset);
-     
+        $title = $this->convert_to_utf8($entry['title'], $charset, $forceUtf8);
         $output .= "  <entry>\n";
         $output .= "    <ref href=\"{$entry['url']}\" />\n";
         if (isset($entry['moreinfo']))  $output .= "    <moreinfo href=\"{$entry['moreinfo']}\" />\n";
@@ -766,8 +780,11 @@ class StreamLib {
      $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
   }
 
-  function convert_to_utf8($entry, $fromCharset = "iso-8859-1") {
-    if ($fromCharset != "utf-8") {
+  /**
+   * The Flash MP3 player can only handle utf-8.
+   */
+  function convert_to_utf8($entry, $fromCharset, $forceUtf8) {
+    if ($fromCharset != "utf-8" && $forceUtf8) {
       $entry = utf8_encode($entry);
     }
     return $entry;
@@ -965,4 +982,5 @@ class StreamLib {
     return $status;
   }
 }
+
 ?>
