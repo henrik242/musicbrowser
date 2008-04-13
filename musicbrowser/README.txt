@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.41 2008-04-13 16:05:25 mingoto Exp $
+$Id: README.txt,v 1.42 2008-04-13 18:18:13 mingoto Exp $
 
 Installation
 ------------
@@ -72,11 +72,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.14-CVS
+0.14 (2008-04-13)
 - Remote control of XBMC Media Center added (http://xbmc.org/)
 - Workaround for php versions without utf8_encode() (e.g. fun_plug for DNS-323)
 - Improved play and download icons
-- NB! Small config change, one enabledPlay entnry is used instead of several
+- NB! Small config change, one enabledPlay entry is used instead of several
   enable* entries.  Please update your index.php file.
 
 0.13 (2008-02-20)
