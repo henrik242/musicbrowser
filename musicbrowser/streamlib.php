@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.36 2008-04-13 14:39:00 mingoto Exp $
+ *   $Id: streamlib.php,v 1.37 2008-04-13 16:05:25 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -28,6 +28,7 @@ define('SERVER', 'server');
 define('PLS', 'pls');
 define('SLIM', 'slim');
 define('RSS', 'rss');
+define('XBMC', 'xbmc');
 
 class MusicBrowser {
   
@@ -94,12 +95,9 @@ class MusicBrowser {
       }
     }
     
-    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) {
-      $this->unsetEnabledPlay(SLIM);
-    }
-    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) {
-      $this->unsetEnabledPlay(SERVER);
-    }
+    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->unsetEnabledPlay(SLIM);
+    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->unsetEnabledPlay(SERVER);
+    if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->unsetEnabledPlay(XBMC);
   }
 
   function unsetEnabledPlay($disable) {
@@ -266,10 +264,13 @@ class MusicBrowser {
     foreach ($select as $type => $checked) {
       switch ($type) {
         case SERVER:
-          $display = "Play on server";
+          $display = "Server";
           break;
         case SLIM:
-          $display = "Play on Squeezebox";
+          $display = "Squeezebox";
+          break;
+        case XBMC:
+          $display = "XBMC";
           break;
         default:
           $display = $type;
@@ -493,6 +494,11 @@ class MusicBrowser {
       return;
     }
     
+    if ($type == "xbmc" && $this->allowLocal) {
+      $this->play_xbmc(PATH_RELATIVE);
+      return;
+    }
+    
     $fullPath = PATH_FULL;
     $name = $this->pathinfo_basename($fullPath);
     if (empty($name)) $name = "playlist";
@@ -571,6 +577,33 @@ class MusicBrowser {
   }
 
   /**
+   * Invokes an action on the XBMC.
+   * @see http://xbmc.org/wiki/?title=WebServerHTTP-API 
+   */
+  function invoke_xbmc($command, $parameter = "") {
+    $url = $this->xbmcUrl . "/xbmcCmds/xbmcHttp?command=$command";
+    if (strlen($parameter) > 0) $url .= "($parameter)";
+    $data = $this->http_get($url);
+    return $data;
+  }
+
+  function play_xbmc($item) {
+    $data = $this->invoke_xbmc("Action", "13"); // ACTION_STOP
+    $data = $this->invoke_xbmc("ClearPlayList", "0");
+    $data = $this->invoke_xbmc("SetCurrentPlayList", "0");
+    $parameter = $this->xbmcPath . "/" . $this->path_encode($item, false) . ";0;[music];1";
+    $data = $this->invoke_xbmc("AddToPlayList", $parameter);
+    if (preg_match("/Error/", $data) == 1) {
+      $this->add_message("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
+    } else {
+      $this->add_message("Playing requested file(s) on Xbmc");
+      $data = $this->invoke_xbmc("PlaylistNext");
+    }
+    $data = $this->invoke_xbmc("GetPlayListContents", "0");
+    $this->reload_page(); //exits
+  }
+  
+  /**
    * play_server uses system() and might be VERY UNSAFE!
    */
   function play_server($items) {
@@ -601,7 +634,7 @@ class MusicBrowser {
   }
   
   /**
-   * Redirect to current folder page.
+   * Redirect to current folder page.  This function calls exit().
    */
   function reload_page() {
     $path = "";
