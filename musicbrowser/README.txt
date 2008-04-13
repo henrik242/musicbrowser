@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.39 2008-02-20 19:56:07 mingoto Exp $
+$Id: README.txt,v 1.40 2008-04-13 14:38:59 mingoto Exp $
 
 Installation
 ------------
@@ -66,12 +66,18 @@ Also, PLS playlists will play just fine when opened in iTunes.
 - I get "Could not open URL - Error reaching slimserver" when trying to
   play on Squeezebox.
 Try opening the URL from the error message into a new browser window.
-You might see that you must lower your CSRF Protection Level in
+You might see that you need to lower your CSRF Protection Level in
 SqueezeCenter » Settings » Advanced » Security.
 
 
 Changelog
 ---------
+0.14-CVS
+- Workaround for php versions without utf8_encode() (e.g. fun_plug for DS323)
+- Improved play and download icons
+- NB! Small config change, one enabledPlay is used instead of serveral
+  enable* entries.  Please update your index.php file.
+
 0.13 (2008-02-20)
 - Added playlist shuffle
 - Bugfix: UTF-8 handling in flashplayer and asx playlists would't work for
