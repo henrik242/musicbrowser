@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.37 2008-04-13 16:05:25 mingoto Exp $
+ *   $Id: streamlib.php,v 1.38 2008-04-13 18:18:13 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -494,7 +494,7 @@ class MusicBrowser {
       return;
     }
     
-    if ($type == "xbmc" && $this->allowLocal) {
+    if ($type == XBMC && $this->allowLocal) {
       $this->play_xbmc(PATH_RELATIVE);
       return;
     }
@@ -591,7 +591,7 @@ class MusicBrowser {
     $data = $this->invoke_xbmc("Action", "13"); // ACTION_STOP
     $data = $this->invoke_xbmc("ClearPlayList", "0");
     $data = $this->invoke_xbmc("SetCurrentPlayList", "0");
-    $parameter = $this->xbmcPath . "/" . $this->path_encode($item, false) . ";0;[music];1";
+    $parameter = $this->xbmcPath . "/" . $this->path_encode($item, false, true) . ";0;[music];1";
     $data = $this->invoke_xbmc("AddToPlayList", $parameter);
     if (preg_match("/Error/", $data) == 1) {
       $this->add_message("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
@@ -737,13 +737,14 @@ class MusicBrowser {
   /**
    * Encode a fairly readable path for the URL.
    */
-  function path_encode($path, $encodespace = true) {
+  function path_encode($path, $encodeSpace = true, $utf8Encode = false) {
      $search = array("|^%2F|", "|%2F|");
      $replace = array("", "/");
-     if ($encodespace) {
+     if ($encodeSpace) {
        $search[] = "|%20|";
        $replace[] = "+";
      }
+     if ($utf8Encode) $path = utf8_encode($path);
      return preg_replace($search, $replace, rawurlencode($path)); 
   }
 
