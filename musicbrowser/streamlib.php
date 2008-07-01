@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.39 2008-07-01 21:48:26 mingoto Exp $
+ *   $Id: streamlib.php,v 1.40 2008-07-01 22:17:08 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -152,9 +152,7 @@ class MusicBrowser {
 
       $result['error'] = @ $_SESSION['message'];
       $_SESSION['message'] = "";
-      $heisann = $this->json_encode($result);
-      file_put_contents("/tmp/fil", $heisann);
-      print $heisann;
+      print $this->json_encode($result);
       exit(0);
     }
     
