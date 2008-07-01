@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.40 2008-07-01 22:17:08 mingoto Exp $
+ *   $Id: streamlib.php,v 1.41 2008-07-01 22:31:03 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -416,8 +416,8 @@ class MusicBrowser {
     if ($this->folderCovers) {
       $coverImage = $this->cover_image($pathRelative);
       if (!empty($coverImage)) {
-        $urlPath = $this->path_encode($pathRelative);
-        $image ="<a href=\"" . URL_RELATIVE . "?path=$urlPath\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
+        $jsUrlPath = $this->js_url($this->path_encode($pathRelative));
+        $image ="<a href=\"javascript:changeDir('$jsUrlPath')\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
       }
     }
     return $image;
