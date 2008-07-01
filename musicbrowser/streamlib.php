@@ -1,14 +1,14 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.38 2008-04-13 18:18:13 mingoto Exp $
+ *   $Id: streamlib.php,v 1.39 2008-07-01 21:48:26 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
  *   Music Browser is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ *   any later version.
  *
  *   Music Browser is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -63,6 +63,9 @@ class MusicBrowser {
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
+    
+    session_start();
+    
     $this->resolve_config($config);    
     $this->streamLib = new StreamLib();
   }
@@ -130,40 +133,61 @@ class MusicBrowser {
       exit(0);
     } 
 
-    # List of files and folders
-    $entries = $this->list_folder($fullPath);
-
-    # Set stream/play type from $_POST or $_COOKIE
+    # Set stream/play type from $_GET or $_SESSION
     $this->set_stream_type();
 
-    # get all content for template
-    $coverImage = $this->show_cover();
-    $topPath = $this->show_header();
-    $content = $this->show_folder($entries);
-    $options = $this->show_options();
+    if (isset($_GET['content'])) {
+      $result = array();
+      $entries = $this->list_folder($fullPath);
+      $content = $this->show_folder($entries);
+      $result['content'] = '<table width="100%">' . $content . "</table>";
 
+      $result['cover'] = $this->show_cover();
+
+      $linkedPath = $this->show_header();
+      $linkedTitle = "<a class=title href=\"javascript:changeDir('')\">{$this->homeName}</a>";
+      $result['breadcrumb'] = "$linkedTitle<br>$linkedPath";
+
+      $result['options'] = $this->show_options();
+
+      $result['error'] = @ $_SESSION['message'];
+      $_SESSION['message'] = "";
+      $heisann = $this->json_encode($result);
+      file_put_contents("/tmp/fil", $heisann);
+      print $heisann;
+      exit(0);
+    }
+    
     if (isset($_GET['message'])) {
       $this->add_message($_GET['message']);
     }
 
-    $folder = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
-    $displayTitle = PATH_RELATIVE == "" ? $this->homeName : $this->homeName . " -";
-    $flashPlayer = STREAMTYPE == FLASH ? $this->show_flashplayer() : "";
-    $rssUrl = htmlentities("$folder&stream=" . RSS);
-    $rssTitle = PATH_RELATIVE . " podcast";
-
-    $search = array("/%top_path%/", "/%columns%/", "/%cover_image%/", "/%error_msg%/", 
-                    "/%stream_options%/", "/%content%/", "/%folder_path%/", "/%thumb_size%/",
-                    "/%rss_url%/", "/%rss_title%/", "/%flash_player%/", "/%display_title%/", 
-                    "/%display_path%/", "/%column_width%/", "/%charset%/");
-    $replace = array($topPath, $this->columns, $coverImage, $this->infoMessage, 
-                     $options, $content, $folder, $this->thumbSize,
-                     $rssUrl, $rssTitle, $flashPlayer, $displayTitle, 
-                     PATH_RELATIVE, $this->columnWidth, $this->charset);
+    $search = array("/%folder%/", "/%flash_player%/");
+    $replace = array(PATH_RELATIVE, $this->show_flashplayer());
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
     exit(0);
+  }
+  
+  function show_flashplayer() {
+    if (in_array(FLASH, $this->enabledPlay)) {
+      return '<div id="player">JW FLV Player</div>
+        <script type="text/javascript">
+        flvObject().write(\'player\');
+      </script>';
+    }
+  }
+  
+  function json_encode($array) {
+    $json = array();
+    $search = array('|"|', '|/|', "/\n/");
+    $replace = array('\\"', '\\/', '\\n');
+    foreach ($array as $key => $value) {
+      $json[] = ' "' . preg_replace($search, $replace, $key)
+              . '": "' . preg_replace($search, $replace, $value) . '"';
+    }
+    return "{\n" . implode($json, ",\n") . "\n}";
   }
   
   /**
@@ -199,20 +223,23 @@ class MusicBrowser {
             $entry .= '<td class=cell>';
             if (empty($item)) {
               $entry .= "&nbsp;";
-            } elseif (is_dir(PATH_FULL . "/$item")) {
-              # Folder link
-              $image = $this->show_folder_cover(PATH_RELATIVE . "/$item");
-              $displayItem = $this->word_wrap($item);
-              $entry .= "$image<a title=\"Play files in this folder\" href=\"" . $this->play_url($urlPath) 
-                . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
-                . "<a class=folder href=\"" . URL_RELATIVE . "?path=$urlPath\">$displayItem/</a>\n";
             } else {
-              # File link
               $displayItem = $this->word_wrap($item);
-              $entry .= "<a href=\"" . $this->direct_link(PATH_RELATIVE . "/$item") . "\">"
-                . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
-                . "<a class=file title=\"Play this song\" href=\"" . $this->play_url($urlPath) 
-                . "\">$displayItem</a>\n";
+              if ($this->charset != "utf-8") $displayItem = utf8_encode($displayItem);
+              if (is_dir(PATH_FULL . "/$item")) {
+                # Folder link
+                $image = $this->show_folder_cover(PATH_RELATIVE . "/$item");
+                $jsUrlPath = $this->js_url($urlPath);
+                $entry .= "$image<a title=\"Play files in this folder\" href=\"" . $this->play_url($urlPath) 
+                  . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
+                  . "<a class=folder href=\"javascript:changeDir('$jsUrlPath')\">$displayItem</a>\n";
+              } else {
+                # File link
+                $entry .= "<a href=\"" . $this->direct_link(PATH_RELATIVE . "/$item") . "\">"
+                  . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
+                  . "<a class=file title=\"Play this song\" href=\"" . $this->play_url($urlPath) 
+                  . "\">$displayItem</a>\n";
+              }
             }
             $entry .= "</td>\n";
           }
@@ -224,9 +251,16 @@ class MusicBrowser {
     return $output;
   }
 
+  /**
+   * Need to encode url entities twice in javascript calls.
+   */
+  function js_url($url) {
+    return preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $url);
+  }
+
   function direct_link($urlPath) {
      if ($this->directFileAccess) {
-       return $this->path_encode($urlPath);
+       return $this->path_encode($urlPath, false);
      } 
      return URL_RELATIVE . "?path=" . $this->path_encode("$urlPath");
   }
@@ -234,8 +268,7 @@ class MusicBrowser {
   function play_url($urlPath) {
     $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
     if (STREAMTYPE == FLASH) {
-       # Need to encode url entities twice
-       $streamUrl = preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $streamUrl);
+       $streamUrl = $this->js_url($streamUrl);
        return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=" . FLASH . "')})";
     }
     return "$streamUrl=" . STREAMTYPE;
@@ -261,6 +294,7 @@ class MusicBrowser {
       $select[STREAMTYPE] = 'CHECKED';
     }
     $output = "";
+    $pathEncoded = $this->path_encode(PATH_RELATIVE);
     foreach ($select as $type => $checked) {
       switch ($type) {
         case SERVER:
@@ -270,20 +304,20 @@ class MusicBrowser {
           $display = "Squeezebox";
           break;
         case XBMC:
-          $display = "XBMC";
+          $display = "Xbox";
           break;
         default:
           $display = $type;
       }
       $output .= "<input type=radio name=streamtype value=$type "
-               . " onClick=\"document.streamtype.submit()\" $checked>$display\n";
+               . " onClick=\"setStreamtype('" . $pathEncoded . "', '" . $type . "')\" $checked>$display\n";
     }
     $checked = "";
-    if (SHUFFLE == 'yes') {
+    if (SHUFFLE == 'true') {
       $checked = "CHECKED";
     } 
-    $output .= "&nbsp;&nbsp;<input type=checkbox value=yes name=shuffle "
-             . " onClick=\"document.streamtype.submit()\" $checked>shuffle\n";
+    $output .= "&nbsp;&nbsp;<input id=shuffle type=checkbox name=shuffle "
+             . " onClick=\"setShuffle('" . $pathEncoded . "')\" $checked>shuffle\n";
     return $output;
   }
 
@@ -352,31 +386,31 @@ class MusicBrowser {
    * @return string streamtype
    */
   function set_stream_type() {
-    $setcookie = false;
     $streamType = $shuffle = "";
     
-    if (isset($_COOKIE['streamtype'])) {
-      $items = explode(';', $_COOKIE['streamtype']);
-      $streamType = @$items[0];
-      $shuffle = @$items[1];
-    }
-    if (isset($_POST['streamtype'])) {
-      $streamType = $_POST['streamtype'];
-      $shuffle = @$_POST['shuffle'];
-      $setcookie = true;
-    }
+    if (isset($_GET['streamtype']) and strlen($_GET['streamtype']) > 0 
+        and in_array($_GET['streamtype'], $this->enabledPlay)) {
+      $streamType = $_GET['streamtype'];
+      $_SESSION['streamtype'] = $streamType;
+    } else if (isset($_SESSION['streamtype'])) {
+      $streamType = $_SESSION['streamtype'];
+    }    
     if (!in_array($streamType, $this->enabledPlay)) {
       $streamType = $this->enabledPlay[0];
     }
-    if ($shuffle != "yes") {
-      $shuffle = "no";
+    
+    if (isset($_GET['shuffle']) and strlen($_GET['shuffle']) > 0) {
+      $shuffle = $_GET['shuffle'];
+      $_SESSION['shuffle'] = $shuffle;
+    } else if (isset($_SESSION['shuffle'])) {
+      $shuffle = $_SESSION['shuffle'];
     }
+    if ($shuffle != "true") {
+      $shuffle = "false";
+    }
+    
     define('STREAMTYPE', $streamType);
     define('SHUFFLE', $shuffle);
-    
-    if ($setcookie) {
-      setcookie('streamtype', "$streamType;$shuffle");
-    }
   }
 
   function show_folder_cover($pathRelative) {
@@ -428,19 +462,17 @@ class MusicBrowser {
     if ($parts[0] == '') {
       $parts = array();
     }
-    if (count($parts) > 0) {
-      $items = array("<b><a href=\"" . URL_RELATIVE . "?path=\">{$this->homeName}</a></b>");
-    } else {
-      $items = array("<b>{$this->homeName}</b>");
-    }
+    $items = array();
     $currentPath = $encodedPath = "";
     for ($i = 0; $i < count($parts); $i++) {
       $currentPath .= "/{$parts[$i]}";
       $encodedPath = $this->path_encode($currentPath);
+      if ($this->charset != "utf-8") $displayItem = utf8_encode($parts[$i]);
       if ($i < count($parts) - 1) {
-        $items[] = "<b><a href=\"" . URL_RELATIVE . "?path=$encodedPath\">{$parts[$i]}</a></b>\n";
+        $encodedPath = $this->js_url($encodedPath);
+        $items[] = "<a class=path href=\"javascript:changeDir('$encodedPath')\">$displayItem</a>\n";
       } else {
-        $items[] = "<b>{$parts[$i]}</b>";
+        $items[] = "<span class=path>$displayItem</span>";
       }
     }
     $output = implode(" &raquo; ", $items);
@@ -506,7 +538,7 @@ class MusicBrowser {
     
     if (is_dir($fullPath)) {
       $items = $this->folder_items(PATH_RELATIVE, $items);
-      if ($shuffle == 'yes') {
+      if ($shuffle == 'true') {
         shuffle($items);
       } else {
         natcasesort($items);
@@ -646,7 +678,7 @@ class MusicBrowser {
       }
     }
     $url = URL_FULL . "?path=" . $this->path_encode($path);
-    $url .= "&message=" . urlencode($this->infoMessage);
+    $_SESSION['message'] = $this->infoMessage;
     header("Location: $url");
     exit(0);
   }
@@ -673,6 +705,7 @@ class MusicBrowser {
    */
   function add_message($msg) {
     $this->infoMessage .= "$msg<br>\n";
+    $_SESSION['message'] = $this->infoMessage;
   }
 
   /**
@@ -698,7 +731,7 @@ class MusicBrowser {
         $relPath = $getPath;
       } else {
         $this->add_message("The path <i>$getPath</i> is not readable.");
-        $this->reload_page(); // exits
+        //$this->reload_page(); // exits
       }
     }
     $fullPath = "$rootPath/$relPath";
@@ -747,44 +780,7 @@ class MusicBrowser {
      if ($utf8Encode) $path = utf8_encode($path);
      return preg_replace($search, $replace, rawurlencode($path)); 
   }
-
-  function show_flashplayer() {
-    return <<<EOF
-<script type="text/javascript" src="swfobject.js"></script>
-<div id="player">JW FLV Media Player</div>
-<script type="text/javascript">
-<!--
-function thisSong(swf) {
-  if(navigator.appName.indexOf("Microsoft") != -1) {
-    return window[swf];
-  } else {
-    return document[swf];
-  }
-};
-function loadFile(swf,obj) {
-  thisSong(swf).loadFile(obj);
-};
-var so = new SWFObject('mediaplayer.swf', 'mpl', '{$this->columnWidth}', '{$this->thumbSize}', '8');
-so.addParam('allowscriptaccess', 'always');
-so.addParam('allowfullscreen', 'false');
-so.addVariable('height', '{$this->thumbSize}');
-so.addVariable('width', '{$this->columnWidth}');
-so.addVariable('displaywidth', '0');
-so.addVariable('showstop', 'true');
-so.addVariable('autostart', 'true');
-so.addVariable('usefullscreen', 'false');
-so.addVariable('shuffle', 'false');
-so.addVariable('enablejs', 'true');
-so.addVariable('type', 'mp3');
-so.addVariable('repeat', 'list');
-so.addVariable('thumbsinplaylist', 'false');
-so.write('player');
--->
-</script>
-EOF;
-  }
 }
-
 
 
 class StreamLib {
@@ -869,8 +865,8 @@ class StreamLib {
    */
   function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "iso-8859-1") {
     $link = htmlspecialchars($link);
-    $name = htmlspecialchars($name);
-    $output = "<?xml version=\"1.0\" encoding=\"$charset\"?>\n"
+    $name = $this->convert_to_utf8(htmlspecialchars($name), $charset, true);
+    $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
             . "<rss xmlns:itunes=\"http://www.itunes.com/DTDs/Podcast-1.0.dtd\" version=\"2.0\">\n"
             . "  <channel><title>$name</title><link>$link</link>\n";
     if (!empty($image)) {
@@ -879,7 +875,7 @@ class StreamLib {
     foreach ($entries as $entry) {
       $date = date('r', $entry['timestamp']);
       $url = htmlspecialchars($entry['url']);
-      $title = htmlspecialchars($entry['title']);
+      $title = $this->convert_to_utf8(htmlspecialchars($entry['title']), $charset, true);
       $output .= "  <item><title>$title</title>\n"
                . "    <enclosure url=\"$url\" type=\"audio/mpeg\" />\n"
                . "    <guid>$url</guid>\n"

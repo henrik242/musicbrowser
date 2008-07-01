@@ -5,7 +5,7 @@
    Music Browser is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
+   any later version.
 
    Music Browser is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,9 +19,8 @@
 -->
 <html>
 <head>
-  <title>%display_title% %display_path%</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=%charset%">
-  <link rel="alternate" title="%rss_title%" href="%rss_url%" type="application/rss+xml">  
+  <title></title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style type="text/css">
 <!-- 
 .header { background-color: #91AA9D; }
@@ -29,37 +28,45 @@
 th { background-color: #3E606F; color: #FCFFF5; }
 a { color: #2222AA; }
 .error { color: red; }
-.apphome { text-decoration: none; }
-a.apphome:hover { text-decoration: underline; }
+.footerlink { text-decoration: none; }
+a.footerlink:hover { text-decoration: underline; }
 .folder { font-size: 0.8em; }
 .file { font-size: 0.8em; }
-.cell { vertical-align: bottom; }
+.cell { vertical-align: bottom; text-align: left; }
 .odd { background-color: #FCFFF5; }
 .even { background-color: #D1DBBD; }
+.title { font-weight: bold; }
+.path { font-weight: bold; }
 -->
   </style>
+  <script type="text/javascript" src="swfobject.js"></script>
 </head>
-<body>
+<body onLoad="changeDir('%folder%')">
 
-  <p><div class=error>%error_msg%</div>
-  <table align=center width="95%"><tr><td colspan=%columns%>
+  <p><div id=error class=error></div>
+  <table align=center width="95%"><tr><td colspan=5>
     <!-- header -->
-    <table class=header width="100%"><tr><td width=%column_width%>
-        %cover_image%
+    <table class=header width="100%"><tr><td width=400>
+      <div id=cover></div>
       </td><td align=center>
-        <br><p>%top_path%</p><br>
-    </td><td align=right width=%column_width%>
+      	<div id="breadcrumb"></div>
+    </td><td align=right width=400>
       %flash_player%
     </td></tr></table>
     <!-- end header -->
+  </td></tr><tr><td colspan=5>
+    <div id=content align=center><i>initializing...</i></div>
   </td></tr>
-    %content%
-  <tr><td>&nbsp;</td></tr><tr><td colspan=%columns%>
+  <tr><td></td></tr><tr><td colspan=5>
     <!-- footer -->
-    <table class=footer width="100%"><tr><td width=%thumb_size%></td><td align=center>
-        <form action="%folder_path%" method=post name=streamtype>%stream_options%</form>
-      </td><td width=%thumb_size% align=right>
-        <a class=apphome href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
+    <table class=footer width="100%"><tr><td width=150>
+        <a class=footerlink href="" id=podcast>podcast</a>
+      </td><td align=center>
+      <form method=post action="" name=streamtype>
+        <div id=options></div>
+      </form>
+    </td><td width=150 align=right>
+      <a class=footerlink href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
     </td></tr></table>
     <!-- end footer -->
   </td></tr></table>

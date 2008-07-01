@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.42 2008-04-13 18:18:13 mingoto Exp $
+$Id: README.txt,v 1.43 2008-07-01 21:48:26 mingoto Exp $
 
 Installation
 ------------
@@ -72,6 +72,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.15 (2008-07-01)
+- Use Ajax for browsing.  Flash player playback is no longer interrupted by
+  selecting a different folder.
+- File download didn't always work in v0.14
+
 0.14 (2008-04-13)
 - Remote control of XBMC Media Center added (http://xbmc.org/)
 - Workaround for php versions without utf8_encode() (e.g. fun_plug for DNS-323)
