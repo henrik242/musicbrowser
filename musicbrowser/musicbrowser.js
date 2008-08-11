@@ -1,28 +1,58 @@
+document.onkeydown = hotkey
+var currentFolder = '';
+var jplayerid = 'mpl';
+var prefix = 'index.php?path=';
+var hotkeyModifier = false;
+
+function hotkey(e) {
+  var keycode;
+  if (window.event) keycode = window.event.keyCode;
+  else if (e) keycode = e.which;
+
+  if (keycode == 224 || keycode == 16 || keycode == 17 || keycode == 18) {
+    hotkeyModifier = true; // cmd, shift, ctrl, alt
+  } else if (hotkeyModifier == true ) {
+    hotkeyModifier = false; // modifier has been pressed
+  } else {
+    document.getElementById('error').innerHTML = '';
+    if (keycode == 80) jPlayer().sendEvent('playpause'); // 'p'
+    if (keycode == 66) jPlayer().sendEvent('prev'); // 'b'
+    if (keycode == 78) jPlayer().sendEvent('next'); // 'n'
+    if (keycode == 65) { // 'a'
+      var theFile = "{file:encodeURI('" + currentFolder + "&stream=flash')}";
+      loadFile(eval("(" + theFile + ")")); 
+      document.getElementById('error').innerHTML = "Playing all files in this folder"; 
+    }
+  }
+}
+
 function changeDir(path) {
-  document.getElementById('content').innerHTML = "<div align=center><i>loading...</i></div>";
-  updateContent(path, '', '');
+  document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
+  currentFolder = prefix + path;
+  updateContent(path);
   document.title = path.replace(/\+/g, ' ');
   document.getElementById('podcast').href = "index.php?path=" + path + '&stream=rss';
   document.getElementById('podcast').title = path.replace(/\+/g, ' ') + ' podcast';
+  document.getElementById('permalink').href = "index.php?path=" + path;
 }
 
 function setStreamtype(path, streamtype) {
-  updateContent(path, streamtype, ''); 
+  updateContent(path +  '&streamtype=' + streamtype); 
 }
 
 function setShuffle(path) {
   var shuffle = document.getElementById('shuffle').checked;
-  updateContent(path, '', shuffle); 
+  updateContent(path + '&shuffle=' + shuffle); 
 }
 
-function updateContent(path, streamtype, shuffle) {
+function updateContent(path) {
   var http = false;
   if (navigator.appName == "Microsoft Internet Explorer") {
       http = new ActiveXObject("Microsoft.XMLHTTP");
   } else {
       http = new XMLHttpRequest();
   }
-  http.open("GET", "index.php?content&path=" + path + "&streamtype=" + streamtype + "&shuffle=" + shuffle, true);
+  http.open("GET", prefix + path + "&content", true);
   http.onreadystatechange=function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
@@ -36,25 +66,25 @@ function updateContent(path, streamtype, shuffle) {
   http.send(null);
 }
 
-function thisSong(swf) {
+function jPlayer() {
   if (navigator.appName.indexOf("Microsoft") != -1) {
-    return window[swf];
+    return window[jplayerid];
   } else {
-    return document[swf];
+    return document[jplayerid];
   }
 }
 
-function loadFile(swf,obj) {
-  thisSong(swf).loadFile(obj);
+function loadFile(obj) {
+  jPlayer().loadFile(obj);
 }
 
 function flvObject() {
-  var so = new SWFObject('mediaplayer.swf', 'mpl', '400', '150', '8');
+  var so = new SWFObject('mediaplayer.swf', jplayerid, '400', '150', '8', "#FFFFFF");
   so.addParam('allowscriptaccess', 'always');
   so.addParam('allowfullscreen', 'false');
   so.addVariable('height', '150');
   so.addVariable('width', '400');
-  so.addVariable('file','');
+  so.addVariable('file', '');
   so.addVariable('displaywidth', '0');
   so.addVariable('showstop', 'true');
   so.addVariable('autostart', 'true');

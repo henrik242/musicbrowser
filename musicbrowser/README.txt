@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.43 2008-07-01 21:48:26 mingoto Exp $
+$Id: README.txt,v 1.44 2008-08-11 21:17:19 mingoto Exp $
 
 Installation
 ------------
@@ -72,6 +72,12 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.16 (2008-08-11)
+- Added flash player hotkeys: (p)lay/pause, (a)dd all songs, (b)ack, (n)ext
+- Fixed a bug in the breadcrumbs when using utf-8
+- Fixed a quoting bug when using a permalink with an apostroph
+- Renamed swfobject.js to musicbrowser.js
+
 0.15 (2008-07-01)
 - Use Ajax for browsing.  Flash player playback is no longer interrupted by
   selecting a different folder.

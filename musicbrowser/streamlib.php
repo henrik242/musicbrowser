@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.41 2008-07-01 22:31:03 mingoto Exp $
+ *   $Id: streamlib.php,v 1.42 2008-08-11 21:17:19 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -138,8 +138,8 @@ class MusicBrowser {
 
     if (isset($_GET['content'])) {
       $result = array();
-      $entries = $this->list_folder($fullPath);
-      $content = $this->show_folder($entries);
+      $items = $this->list_folder($fullPath);
+      $content = $this->show_folder($items);
       $result['content'] = '<table width="100%">' . $content . "</table>";
 
       $result['cover'] = $this->show_cover();
@@ -161,7 +161,7 @@ class MusicBrowser {
     }
 
     $search = array("/%folder%/", "/%flash_player%/");
-    $replace = array(PATH_RELATIVE, $this->show_flashplayer());
+    $replace = array(addslashes(PATH_RELATIVE), $this->show_flashplayer());
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
@@ -172,8 +172,8 @@ class MusicBrowser {
     if (in_array(FLASH, $this->enabledPlay)) {
       return '<div id="player">JW FLV Player</div>
         <script type="text/javascript">
-        flvObject().write(\'player\');
-      </script>';
+          flvObject().write(\'player\');
+        </script>';
     }
   }
   
@@ -222,7 +222,7 @@ class MusicBrowser {
             if (empty($item)) {
               $entry .= "&nbsp;";
             } else {
-              $displayItem = $this->word_wrap($item);
+              $displayItem = $this->word_wrap($item); // . " (" . date("Y-m-d", filemtime($item)) . ")";
               if ($this->charset != "utf-8") $displayItem = utf8_encode($displayItem);
               if (is_dir(PATH_FULL . "/$item")) {
                 # Folder link
@@ -253,6 +253,7 @@ class MusicBrowser {
    * Need to encode url entities twice in javascript calls.
    */
   function js_url($url) {
+//    return $url;
     return preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $url);
   }
 
@@ -267,7 +268,7 @@ class MusicBrowser {
     $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
     if (STREAMTYPE == FLASH) {
        $streamUrl = $this->js_url($streamUrl);
-       return "javascript:loadFile('mpl',{file:encodeURI('$streamUrl=" . FLASH . "')})";
+       return "javascript:loadFile({file:encodeURI('$streamUrl=" . FLASH . "')})";
     }
     return "$streamUrl=" . STREAMTYPE;
   }
@@ -364,19 +365,19 @@ class MusicBrowser {
    */
   function list_folder($path) {
     $folderHandle = dir($path);
-    $entries = array();
-    while (false !== ($entry = $folderHandle->read())) {
+    $items = array();
+    while (false !== ($item = $folderHandle->read())) {
       foreach ($this->hideItems as $hideItem) {
-        if (preg_match($hideItem, $entry)) continue 2;
+        if (preg_match($hideItem, $item)) continue 2;
       }
-      $fullPath = "$path/$entry";
-      if (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($entry))) {
-        $entries[] = $entry;
+      $fullPath = "$path/$item";
+      if (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($item))) {
+        $items[] = $item;
       }
     }
     $folderHandle->close();
-    natcasesort($entries);
-    return $entries;
+    natcasesort($items);
+    return $items;
   }
 
   /**
@@ -465,7 +466,11 @@ class MusicBrowser {
     for ($i = 0; $i < count($parts); $i++) {
       $currentPath .= "/{$parts[$i]}";
       $encodedPath = $this->path_encode($currentPath);
-      if ($this->charset != "utf-8") $displayItem = utf8_encode($parts[$i]);
+      if ($this->charset != "utf-8") {
+        $displayItem = utf8_encode($parts[$i]);
+      } else {
+        $displayItem = $parts[$i];
+      }
       if ($i < count($parts) - 1) {
         $encodedPath = $this->js_url($encodedPath);
         $items[] = "<a class=path href=\"javascript:changeDir('$encodedPath')\">$displayItem</a>\n";
@@ -501,15 +506,15 @@ class MusicBrowser {
    */
   function folder_items($folder, $allItems) {
     $fullPath = PATH_ROOT . "/$folder";
-    $entries = $this->list_folder($fullPath);
-    foreach ($entries as $entry) {
+    $items = $this->list_folder($fullPath);
+    foreach ($items as $item) {
       if (count($allItems) >= $this->maxPlaylistSize) {
         return $allItems;
       }
-      if (is_file("$fullPath/$entry")) {
-        $allItems[] = "$folder/$entry";
+      if (is_file("$fullPath/$item")) {
+        $allItems[] = "$folder/$item";
       } else {
-        $allItems = $this->folder_items("$folder/$entry", $allItems);
+        $allItems = $this->folder_items("$folder/$item", $allItems);
       }
     }
     return $allItems;
