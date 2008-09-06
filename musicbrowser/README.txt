@@ -1,4 +1,4 @@
-$Id: README.txt,v 1.44 2008-08-11 21:17:19 mingoto Exp $
+$Id: README.txt,v 1.45 2008-09-06 10:20:13 mingoto Exp $
 
 Installation
 ------------
@@ -72,6 +72,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.17-CVS
+- Some code refactoring
+- New 'securePath' config variable to allow symlinks that points outside
+  'path'
+
 0.16 (2008-08-11)
 - Added flash player hotkeys: (p)lay/pause, (a)dd all songs, (b)ack, (n)ext
 - Fixed a bug in the breadcrumbs when using utf-8

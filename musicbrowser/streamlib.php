@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.42 2008-08-11 21:17:19 mingoto Exp $
+ *   $Id: streamlib.php,v 1.43 2008-09-06 10:20:19 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -55,11 +55,6 @@ class MusicBrowser {
     if (!function_exists('preg_match')) {
       $this->fatal_error('The preg_match function does not exist. Your PHP installation lacks the PCRE extension');
     }
-    if (!function_exists('utf8_encode')) {
-      function utf8_encode($data) { 
-        return $data; // Won't look very nice, but at least it runs
-      }
-    }
     if (!is_readable($config['template'])) {
       $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
@@ -72,7 +67,6 @@ class MusicBrowser {
 
   function resolve_config($config) {
     $this->resolve_url($config['url']); // need to resolve url before path
-    $this->resolve_path($config['path']);
   
     foreach ($config as $key => $value) {
       switch ($key) {
@@ -97,6 +91,7 @@ class MusicBrowser {
           break;
       }
     }
+    $this->resolve_path($config['path']);
     
     if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->unsetEnabledPlay(SLIM);
     if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->unsetEnabledPlay(SERVER);
@@ -121,15 +116,13 @@ class MusicBrowser {
    * Display requested page.
    */
   function show_page() {
-    $fullPath = PATH_FULL;
-
-    if ((is_dir($fullPath) || is_file($fullPath)) && isset($_GET['stream'])) {
+    if ((is_dir(PATH_FULL) || is_file(PATH_FULL)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
       $this->stream_all($_GET['stream'], @$_GET['shuffle']);
       exit(0);
-    } elseif (is_file($fullPath)) {
+    } elseif (is_file(PATH_FULL)) {
       # If the path is a file, download it
-      $this->streamLib->stream_file_auto($fullPath);
+      $this->streamLib->stream_file_auto(PATH_FULL);
       exit(0);
     } 
 
@@ -138,7 +131,7 @@ class MusicBrowser {
 
     if (isset($_GET['content'])) {
       $result = array();
-      $items = $this->list_folder($fullPath);
+      $items = $this->list_folder(PATH_FULL);
       $content = $this->show_folder($items);
       $result['content'] = '<table width="100%">' . $content . "</table>";
 
@@ -215,30 +208,12 @@ class MusicBrowser {
           $entry .= "<tr class=$rowcolor>";
           for ($i = 0; $i < $this->columns; $i++) {
             $cell = $row + ($i * $rows);
-            $item = @ $group[$cell];
-            $urlPath = $this->path_encode(PATH_RELATIVE . "/$item");
-            
             $entry .= '<td class=cell>';
-            if (empty($item)) {
-              $entry .= "&nbsp;";
-            } else {
-              $displayItem = $this->word_wrap($item); // . " (" . date("Y-m-d", filemtime($item)) . ")";
-              if ($this->charset != "utf-8") $displayItem = utf8_encode($displayItem);
-              if (is_dir(PATH_FULL . "/$item")) {
-                # Folder link
-                $image = $this->show_folder_cover(PATH_RELATIVE . "/$item");
-                $jsUrlPath = $this->js_url($urlPath);
-                $entry .= "$image<a title=\"Play files in this folder\" href=\"" . $this->play_url($urlPath) 
-                  . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
-                  . "<a class=folder href=\"javascript:changeDir('$jsUrlPath')\">$displayItem</a>\n";
-              } else {
-                # File link
-                $entry .= "<a href=\"" . $this->direct_link(PATH_RELATIVE . "/$item") . "\">"
-                  . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
-                  . "<a class=file title=\"Play this song\" href=\"" . $this->play_url($urlPath) 
-                  . "\">$displayItem</a>\n";
-              }
-            }
+            
+            $item = @ $group[$cell];
+            if (is_object($item)) {
+              $entry .= $item->show_link();
+            } 
             $entry .= "</td>\n";
           }
           $entry .= "</tr>\n";
@@ -249,40 +224,6 @@ class MusicBrowser {
     return $output;
   }
 
-  /**
-   * Need to encode url entities twice in javascript calls.
-   */
-  function js_url($url) {
-//    return $url;
-    return preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $url);
-  }
-
-  function direct_link($urlPath) {
-     if ($this->directFileAccess) {
-       return $this->path_encode($urlPath, false);
-     } 
-     return URL_RELATIVE . "?path=" . $this->path_encode("$urlPath");
-  }
-
-  function play_url($urlPath) {
-    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
-    if (STREAMTYPE == FLASH) {
-       $streamUrl = $this->js_url($streamUrl);
-       return "javascript:loadFile({file:encodeURI('$streamUrl=" . FLASH . "')})";
-    }
-    return "$streamUrl=" . STREAMTYPE;
-  }
-
-  function word_wrap($item) {
-    if (strlen($item) > 40) {
-      $item = preg_replace("/_/", " ", $item);
-      $pos = strpos($item, " ");
-      if ($pos > 40 || !$pos) {
-        $item = substr($item, 0, 30) . " " . $this->word_wrap(substr($item, 30));
-      }
-    }
-    return $item;
-  }
 
   function show_options() {
     $select = array();
@@ -293,7 +234,7 @@ class MusicBrowser {
       $select[STREAMTYPE] = 'CHECKED';
     }
     $output = "";
-    $pathEncoded = $this->path_encode(PATH_RELATIVE);
+    $pathEncoded = Util::path_encode(PATH_RELATIVE);
     foreach ($select as $type => $checked) {
       switch ($type) {
         case SERVER:
@@ -326,37 +267,32 @@ class MusicBrowser {
    */
   function group_items($items) {
     natcasesort($items);
-    $groupList = $group = array();
-    $to = $from = "";
-    foreach ($items as $item) {
-        $current = strtoupper($item{0});
-        
-        if (strlen($from) == 0) {
-          $from = $current;
-        }
-        
-        if ($to == $current || count($group) < $this->headingThreshold) {
-          $group[] = $item;
-        } else {
-          $groupList = $this->add_group($groupList, $group, $from, $to);
-          $group = array($item);
-          $from = $current;
-        }
-        $to = $current;
+    $group = array();
+    foreach ($items as $plainItem) {
+        $item = new Item($plainItem, $this->charset, $this->directFileAccess, $this->folderCovers);
+        $index = $item->sort_index();
+        @ $group[" $index"][] = $item;
     }
-    if (count($group) > 0) {
-      $groupList = $this->add_group($groupList, $group, $from, $to);
+    
+    $mergedItems = array();
+    $from = "";
+    $i = 0;
+    ksort($group);
+    foreach ($group as $index => $items) {
+      $mergedItems = array_merge($mergedItems, $items);
+      if (count($mergedItems) >= $this->headingThreshold || (count($group) -1) == $i) {
+        if ($from != "") {
+          $index = "$from &ndash; $index"; 
+        }
+        $groupList["$index"] = $mergedItems;
+        $mergedItems = array();
+        $from = "";
+      } elseif ($from == "") {
+        $from = $index;
+      }
+      $i++;
     }
     return $groupList;
-  }
-
-  function add_group($groupList, $group, $from, $to) {
-    if ($from == $to) {
-      $groupList[$from] = $group;
-    } else { 
-      $groupList["$from&ndash;$to"] = $group;
-    }
-    return $groupList;  
   }
 
   /**
@@ -368,7 +304,7 @@ class MusicBrowser {
     $items = array();
     while (false !== ($item = $folderHandle->read())) {
       foreach ($this->hideItems as $hideItem) {
-        if (preg_match($hideItem, $item)) continue 2;
+        if (preg_match($hideItem, $item)) continue 2; // to while loop
       }
       $fullPath = "$path/$item";
       if (is_dir($fullPath) || (is_file($fullPath) && $this->valid_suffix($item))) {
@@ -412,23 +348,11 @@ class MusicBrowser {
     define('SHUFFLE', $shuffle);
   }
 
-  function show_folder_cover($pathRelative) {
-    $image = "";
-    if ($this->folderCovers) {
-      $coverImage = $this->cover_image($pathRelative);
-      if (!empty($coverImage)) {
-        $jsUrlPath = $this->js_url($this->path_encode($pathRelative));
-        $image ="<a href=\"javascript:changeDir('$jsUrlPath')\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
-      }
-    }
-    return $image;
-  }  
-
   /**
    * @return string Formatted HTML with cover image (if any)
    */
   function show_cover($pathRelative = PATH_RELATIVE) {
-    $link = $this->cover_image($pathRelative);
+    $link = Util::cover_image($pathRelative, $this->directFileAccess);
     if (!empty($link)) {
       return "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
                  . "height={$this->thumbSize} align=left></a>";
@@ -436,21 +360,6 @@ class MusicBrowser {
     return "";
   }
   
-  function cover_image($pathRelative = PATH_RELATIVE) {
-    $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
-                  "folder.gif", "Folder.gif");
-    foreach ($covers as $cover) {
-      if (is_readable(PATH_ROOT . "/$pathRelative/$cover")) {
-        $pathEncoded = $this->path_encode("$pathRelative/$cover", false);
-        if ($this->directFileAccess) {
-          return $pathEncoded;
-        } else {
-          return URL_RELATIVE . "?path=" . $pathEncoded;
-        }
-      }
-    }
-    return "";
-  }
 
   /**
    * @return string Formatted HTML with bread crumbs for folder
@@ -465,14 +374,10 @@ class MusicBrowser {
     $currentPath = $encodedPath = "";
     for ($i = 0; $i < count($parts); $i++) {
       $currentPath .= "/{$parts[$i]}";
-      $encodedPath = $this->path_encode($currentPath);
-      if ($this->charset != "utf-8") {
-        $displayItem = utf8_encode($parts[$i]);
-      } else {
-        $displayItem = $parts[$i];
-      }
+      $encodedPath = Util::path_encode($currentPath);
+      $displayItem = Util::convert_to_utf8($parts[$i], $this->charset);
       if ($i < count($parts) - 1) {
-        $encodedPath = $this->js_url($encodedPath);
+        $encodedPath = Util::js_url($encodedPath);
         $items[] = "<a class=path href=\"javascript:changeDir('$encodedPath')\">$displayItem</a>\n";
       } else {
         $items[] = "<span class=path>$displayItem</span>";
@@ -481,7 +386,7 @@ class MusicBrowser {
     $output = implode(" &raquo; ", $items);
 
     # Output "play all"
-    $output .= "&nbsp;&nbsp;<a href=\"" . $this->play_url($encodedPath) . "\"><img 
+    $output .= "&nbsp;&nbsp;<a href=\"" . Util::play_url($encodedPath) . "\"><img 
       src=\"play.gif\" border=0 title=\"Play all songs in this folder as " . STREAMTYPE . "\"
       alt=\"Play all songs in this folder as " . STREAMTYPE . "\"></a>";
     return $output;
@@ -534,12 +439,11 @@ class MusicBrowser {
       return;
     }
     
-    $fullPath = PATH_FULL;
-    $name = $this->pathinfo_basename($fullPath);
+    $name = $this->pathinfo_basename(PATH_FULL);
     if (empty($name)) $name = "playlist";
     $items = array();
     
-    if (is_dir($fullPath)) {
+    if (is_dir(PATH_FULL)) {
       $items = $this->folder_items(PATH_RELATIVE, $items);
       if ($shuffle == 'true') {
         shuffle($items);
@@ -555,17 +459,19 @@ class MusicBrowser {
     }
     $entries = array();
     $withTimestamp = false;
+    $withLength = false;
     if ($type == RSS) {
       $withTimestamp = true;
+      $withLength = true;
     } 
     foreach ($items as $item) {
-      $entries[] = $this->entry_info($item, $withTimestamp);
+      $entries[] = $this->entry_info($item, $withTimestamp, $withLength);
     }
 
     switch ($type) {
       case RSS:
-        $url = URL_FULL . "?path=" . $this->path_encode(PATH_RELATIVE);
-        $coverImage = $this->cover_image();
+        $url = URL_FULL . "?path=" . Util::path_encode(PATH_RELATIVE);
+        $coverImage = Util::cover_image(PATH_RELATIVE, $this->directFileAccess);
         $image = "";
         if (!empty($coverImage)) {
           $image = URL_ROOT . "/$coverImage";
@@ -579,10 +485,8 @@ class MusicBrowser {
         $this->streamLib->playlist_pls($entries, $name);
         break;
       case ASX:
-        $this->streamLib->playlist_asx($entries, $name, $this->charset);
-        break;
       case FLASH:
-        $this->streamLib->playlist_asx($entries, $name, $this->charset, true);
+        $this->streamLib->playlist_asx($entries, $name, $this->charset);
         break;
       case SERVER:
         if ($this->allowLocal) {
@@ -595,18 +499,21 @@ class MusicBrowser {
   /**
    * Info for entry in playlist.
    */
-  function entry_info($item, $withTimestamp = false) {
+  function entry_info($item, $withTimestamp = false, $withLength = false) {
     $name = preg_replace("|\.[a-z0-9]{1,4}$|i", "", $item);
     $parts = array_reverse(preg_split("|/|", $name));
     $name = implode(" - ", $parts);
     if ($this->directFileAccess) {
-      $url = URL_ROOT . "/" . $this->path_encode($item, false);
+      $url = URL_ROOT . "/" . Util::path_encode($item, false);
     } else {
-      $url = URL_FULL . "?path=" . $this->path_encode($item);
+      $url = URL_FULL . "?path=" . Util::path_encode($item);
     }
     $entry = array('title' => $name, 'url' => $url);
     if ($withTimestamp) {
       $entry['timestamp'] = filectime(PATH_ROOT . "/$item");
+    }
+    if ($withLength) {
+      $entry['length'] = filesize(PATH_ROOT . "/$item");
     }
     return $entry;
   }
@@ -626,7 +533,7 @@ class MusicBrowser {
     $data = $this->invoke_xbmc("Action", "13"); // ACTION_STOP
     $data = $this->invoke_xbmc("ClearPlayList", "0");
     $data = $this->invoke_xbmc("SetCurrentPlayList", "0");
-    $parameter = $this->xbmcPath . "/" . $this->path_encode($item, false, true) . ";0;[music];1";
+    $parameter = $this->xbmcPath . "/" . Util::path_encode($item, false, true) . ";0;[music];1";
     $data = $this->invoke_xbmc("AddToPlayList", $parameter);
     if (preg_match("/Error/", $data) == 1) {
       $this->add_message("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
@@ -680,7 +587,7 @@ class MusicBrowser {
         $path = PATH_RELATIVE;
       }
     }
-    $url = URL_FULL . "?path=" . $this->path_encode($path);
+    $url = URL_FULL . "?path=" . Util::path_encode($path);
     $_SESSION['message'] = $this->infoMessage;
     header("Location: $url");
     exit(0);
@@ -725,11 +632,12 @@ class MusicBrowser {
     
     $relPath = "";
     if (isset($_GET['path'])) {
-      # Remove " and \
-      $getPath = preg_replace(array("|\\x5c|", "|\x22|", "|%5c|"), 
-                              array("", "", ""), $_GET['path']);
-      $getPath = stripslashes($getPath);
-      
+      $getPath = stripslashes($_GET['path']);
+      # Remove " (x22) and \ (x5c) and everything before ascii x20
+      $getPath = preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $getPath);
+      $getPath = preg_replace(array("|%5c|", "|/\.\./|", "|/\.\.$|", "|^[/]*\.\.|"), 
+                              array("", "", "", ""), $getPath);
+                                    
       if (is_readable("$rootPath/$getPath")) {
         $relPath = $getPath;
       } else {
@@ -741,7 +649,9 @@ class MusicBrowser {
     # Avoid funny paths
     $realFullPath = realpath($fullPath);
     $realRootPath = realpath($rootPath);
-    if ($realRootPath != substr($realFullPath, 0, strlen($realRootPath)) || !(is_dir($fullPath) || is_file($fullPath))) {
+    
+    if (($this->securePath && $realRootPath != substr($realFullPath, 0, strlen($realRootPath)))
+         || !(is_dir($fullPath) || is_file($fullPath))) {
        $relPath = "";
        $fullPath = $rootPath;
     }
@@ -770,6 +680,104 @@ class MusicBrowser {
      return array_pop(explode("/", $file));
   }
 
+}
+
+/**
+ * A file or folder item.
+ */
+class Item {
+  var $item;
+  var $urlPath;
+  var $charset;
+  var $directFileAccess;
+  var $folderCovers;
+  
+  function Item($item, $charset, $directFileAccess, $folderCovers) {
+    $this->item = $item;  
+    $this->charset = $charset;
+    $this->directFileAccess = $directFileAccess;
+    $this->folderCovers = $folderCovers;
+  } 
+  
+  function url_path() {
+    if (empty($this->urlPath)) {
+      $this->urlPath = Util::path_encode(PATH_RELATIVE . "/" . $this->item);    
+    }
+    return $this->urlPath;
+  }
+  
+  function sort_index() {
+    //return date("Y-m-d", filectime(PATH_FULL . "/" . $this->item));
+    return strtoupper($this->item{0});
+  }
+  
+  function js_url_path() {
+    return Util::js_url($this->url_path());    
+  }
+  
+  function display_item() {
+    $displayItem = Util::word_wrap($this->item);
+    $displayItem = Util::convert_to_utf8($displayItem, $this->charset);
+    return $displayItem;
+  }
+  
+  function show_link() {
+    if (empty($this->item)) {
+      return "&nbsp;";
+    } elseif (is_dir(PATH_FULL . "/" . $this->item)) {
+      return $this->dir_link();
+    } else {
+      return $this->file_link();
+    }
+  }
+  
+  function dir_link() {
+    $image = $this->show_folder_cover(PATH_RELATIVE . "/" . $this->item);
+    return "$image<a title=\"Play files in this folder\" href=\"" . Util::play_url($this->url_path()) 
+      . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
+      . "<a class=folder href=\"javascript:changeDir('" . $this->js_url_path() . "')\">" 
+      . $this->display_item() ."</a>\n";
+  }
+  
+  function file_link() {
+    return "<a href=\"" . $this->direct_link(PATH_RELATIVE . "/" . $this->item) . "\">"
+      . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
+      . "<a class=file title=\"Play this song\" href=\"" . Util::play_url($this->url_path()) 
+      . "\">" . $this->display_item() . "</a>\n";
+  }
+  
+  function direct_link($urlPath) {
+     if ($this->directFileAccess) {
+       return Util::path_encode($urlPath, false);
+     } 
+     return URL_RELATIVE . "?path=" . Util::path_encode($urlPath);
+  }
+  
+  function show_folder_cover($pathRelative) {
+    $image = "";
+    if ($this->folderCovers) {
+      $coverImage = Util::cover_image($pathRelative, $this->directFileAccess);
+      if (!empty($coverImage)) {
+        $jsUrlPath = Util::js_url(Util::path_encode($pathRelative));
+        $image = "<a href=\"javascript:changeDir('" . $this->js_url_path() 
+               . "')\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
+      }
+    }
+    return $image;
+  }  
+}
+
+/**
+ * Common static utility functions.
+ */
+class Util {
+  /**
+   * Need to encode url entities twice in javascript calls.
+   */
+  function js_url($url) {
+    return preg_replace("/%([0-9a-f]{2})/i", "%25\\1", $url);
+  }
+  
   /**
    * Encode a fairly readable path for the URL.
    */
@@ -783,6 +791,55 @@ class MusicBrowser {
      if ($utf8Encode) $path = utf8_encode($path);
      return preg_replace($search, $replace, rawurlencode($path)); 
   }
+  
+  function play_url($urlPath) {
+    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
+    if (STREAMTYPE == FLASH) {
+       $streamUrl = Util::js_url($streamUrl);
+       return "javascript:loadFile({file:encodeURI('$streamUrl=" . FLASH . "')})";
+    }
+    return "$streamUrl=" . STREAMTYPE;
+  }
+  
+  function cover_image($pathRelative, $directFileAccess) {
+    $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
+                  "folder.gif", "Folder.gif");
+    foreach ($covers as $cover) {
+      if (is_readable(PATH_ROOT . "/$pathRelative/$cover")) {
+        $pathEncoded = Util::path_encode("$pathRelative/$cover", false);
+        if ($directFileAccess) {
+          return $pathEncoded;
+        } else {
+          return URL_RELATIVE . "?path=" . $pathEncoded;
+        }
+      }
+    }
+    return "";
+  }
+  
+  function word_wrap($item) {
+    if (strlen($item) > 40) {
+      $item = preg_replace("/_/", " ", $item);
+      $pos = strpos($item, " ");
+      if ($pos > 40 || !$pos) {
+        $item = substr($item, 0, 30) . " " . Util::word_wrap(substr($item, 30));
+      }
+    }
+    return $item;
+  }
+
+  /**
+   * The Flash MP3 player can only handle utf-8.
+   */
+  function convert_to_utf8($entry, $fromCharset) {
+    if (!function_exists('utf8_encode')) {
+      return $entry; // Won't look very nice, but at least it runs
+    }
+    if ($fromCharset != "utf-8") {
+      $entry = utf8_encode($entry);
+    }
+    return $entry;
+  }
 }
 
 
@@ -792,12 +849,11 @@ class StreamLib {
    * @param array $entries Array of arrays with keys moreinfo, url, starttime, duration, title, author & copyright
    * @param string $name Stream name
    */
-  function playlist_asx($entries, $name = "playlist", $charset = "iso-8859-1", $forceUtf8 = false) {
+  function playlist_asx($entries, $name = "playlist", $convertFromCharset = "iso-8859-1") {
      $output = "<asx version=\"3.0\">\n";
-     $forcedCharset = $forceUtf8 == true ? "utf-8" : $charset;
-     $output .= "<param name=\"encoding\" value=\"$forcedCharset\" />\n";
+     $output .= "<param name=\"encoding\" value=\"utf-8\" />\n";
      foreach ($entries as $entry) {
-        $title = $this->convert_to_utf8($entry['title'], $charset, $forceUtf8);
+        $title = Util::convert_to_utf8($entry['title'], $convertFromCharset);
         $output .= "  <entry>\n";
         $output .= "    <ref href=\"{$entry['url']}\" />\n";
         if (isset($entry['moreinfo']))  $output .= "    <moreinfo href=\"{$entry['moreinfo']}\" />\n";
@@ -813,15 +869,6 @@ class StreamLib {
      $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
   }
 
-  /**
-   * The Flash MP3 player can only handle utf-8.
-   */
-  function convert_to_utf8($entry, $fromCharset, $forceUtf8) {
-    if ($fromCharset != "utf-8" && $forceUtf8) {
-      $entry = utf8_encode($entry);
-    }
-    return $entry;
-  }
 
   /**
    * @param array $entries Array of arrays with keys url, title
@@ -868,25 +915,27 @@ class StreamLib {
    */
   function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "iso-8859-1") {
     $link = htmlspecialchars($link);
-    $name = $this->convert_to_utf8(htmlspecialchars($name), $charset, true);
+    $name = Util::convert_to_utf8(htmlspecialchars($name), $charset);
     $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-            . "<rss xmlns:itunes=\"http://www.itunes.com/DTDs/Podcast-1.0.dtd\" version=\"2.0\">\n"
-            . "  <channel><title>$name</title><link>$link</link>\n";
+            . "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:atom=\"http://www.w3.org/2005/Atom\" version=\"2.0\">\n"
+            . "<channel><title>$name</title><link>$link</link>\n"
+            . "  <description>$name</description>\n"
+            . "  <atom:link href=\"$link&amp;stream=rss\" rel=\"self\" type=\"application/rss+xml\" />\n";
     if (!empty($image)) {
       $output .= "  <image><url>$image</url></image>\n";
     }
     foreach ($entries as $entry) {
       $date = date('r', $entry['timestamp']);
       $url = htmlspecialchars($entry['url']);
-      $title = $this->convert_to_utf8(htmlspecialchars($entry['title']), $charset, true);
+      $title = Util::convert_to_utf8(htmlspecialchars($entry['title']), $charset);
       $output .= "  <item><title>$title</title>\n"
-               . "    <enclosure url=\"$url\" type=\"audio/mpeg\" />\n"
+               . "    <enclosure url=\"$url\" length=\"{$entry['length']}\" type=\"audio/mpeg\" />\n"
                . "    <guid>$url</guid>\n"
                . "    <pubDate>$date</pubDate>\n"
                . "  </item>\n";
     }
     $output .= "</channel></rss>\n";
-    $this->stream_content($output, "$name.rss", "text/xml", "inline");
+    $this->stream_content($output, "$name.rss", "application/xml", "inline");
   }
 
   /**
