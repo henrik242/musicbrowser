@@ -1,7 +1,7 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.43 2008-09-06 10:20:19 mingoto Exp $
+ *   $Id: streamlib.php,v 1.44 2008-09-06 10:31:29 mingoto Exp $
  *
  *   This file is part of Music Browser.
  *
@@ -922,7 +922,7 @@ class StreamLib {
             . "  <description>$name</description>\n"
             . "  <atom:link href=\"$link&amp;stream=rss\" rel=\"self\" type=\"application/rss+xml\" />\n";
     if (!empty($image)) {
-      $output .= "  <image><url>$image</url></image>\n";
+      $output .= "  <image><url>$image</url><title>$name</title><link>$link</link></image>\n";
     }
     foreach ($entries as $entry) {
       $date = date('r', $entry['timestamp']);
