@@ -65,7 +65,11 @@ $config = array(
 
   # Width of flash player
   'columnWidth' => 300,
-    
+  
+  # 'securePath' => false allows symlinks to folders outside the 'path' folder, but might 
+  # be less secure
+  'securePath' => true,    
+  
   # Set to true to display PHP errors and notices.  Should be set to false.
   'debug' => false,
 );
