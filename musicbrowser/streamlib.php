@@ -1,8 +1,6 @@
 <?php
 
 /**
- *   $Id: streamlib.php,v 1.44 2008-09-06 10:31:29 mingoto Exp $
- *
  *   This file is part of Music Browser.
  *
  *   Music Browser is free software: you can redistribute it and/or modify

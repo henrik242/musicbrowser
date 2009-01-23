@@ -1,5 +1,3 @@
-$Id: README.txt,v 1.45 2008-09-06 10:20:13 mingoto Exp $
-
 Installation
 ------------
 1) Make sure your web server supports at least PHP 4.2 (PHP 5 works as well)
@@ -72,7 +70,7 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.17-CVS
+0.17-SVN
 - Some code refactoring
 - New 'securePath' config variable to allow symlinks that points outside
   'path'
