@@ -364,7 +364,7 @@ class MusicBrowser {
    */
   function show_header() {
     $path = PATH_RELATIVE;
-    $parts = explode("/", trim($path, "/ "));
+    $parts = explode("/", trim($path, "/"));
     if ($parts[0] == '') {
       $parts = array();
     }
@@ -658,12 +658,21 @@ class MusicBrowser {
     define('PATH_FULL', $fullPath);    # e.g. /mnt/music/Covenant/Stalker.mp3
   }
   
+  function protocol() {
+    if (isset($_SERVER["HTTPS"])) {
+      return "https://"; 
+    } else {
+      return "http://";
+    }
+  }
+  
   function resolve_url($rootUrl) {
+
     if (empty($rootUrl)) {
       $folder = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
-      $root = 'http://' . $_SERVER['HTTP_HOST'] . $folder;
+      $root = $this->protocol() . $_SERVER['HTTP_HOST'] . $folder;
     } else {
-      $root = trim($rootUrl, '/ ');
+      $root = trim($rootUrl, '/');
       if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $root)) {
         $this->fatal_error("The \$config['url'] \"{$root}\" is invalid");
       }

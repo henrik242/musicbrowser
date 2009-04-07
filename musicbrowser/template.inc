@@ -53,7 +53,7 @@ a:active .hotkeys {
   </style>
   <script type="text/javascript" src="musicbrowser.js"></script>
 </head>
-<body onLoad="changeDir('%folder%')">
+<body><!-- onLoad="changeDir('%folder%')"> -->
 
   <p><div id=error></div>
   <table align=center width="95%"><tr><td colspan=5>
@@ -70,7 +70,7 @@ a:active .hotkeys {
   <tr><td></td></tr><tr><td colspan=5>
     <!-- footer -->
     <table class=footer width="100%"><tr><td width=150>
-        <a href="#" class=footerlink id=podcast>podcast</a>&nbsp;|&nbsp;<a href="index.php" id=permalink>permalink</a>&nbsp;|&nbsp;<a>hotkeys<span class=hotkeys>
+        <a href="#" class=footerlink id=podcast>podcast</a>&nbsp;|&nbsp;<a>hotkeys<span class=hotkeys>
           Flash player hotkeys<br>
           <b>p</b> - play or pause<br>
           <b>b</b> - skip back<br>
