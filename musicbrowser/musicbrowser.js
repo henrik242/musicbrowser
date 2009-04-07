@@ -1,53 +1,51 @@
-document.onkeydown = hotkey
 var currentFolder = '';
+var currentHash = '###';
 var jplayerid = 'mpl';
 var prefix = 'index.php?path=';
 var hotkeyModifier = false;
 
-function hotkey(e) {
-  var keycode;
-  if (window.event) keycode = window.event.keyCode;
-  else if (e) keycode = e.which;
+document.onkeydown = hotkey
 
-  if (keycode == 224 || keycode == 16 || keycode == 17 || keycode == 18) {
-    hotkeyModifier = true; // cmd, shift, ctrl, alt
-  } else if (hotkeyModifier == true ) {
-    hotkeyModifier = false; // modifier has been pressed
-  } else {
-    document.getElementById('error').innerHTML = '';
-    if (keycode == 80) jPlayer().sendEvent('playpause'); // 'p'
-    if (keycode == 66) jPlayer().sendEvent('prev'); // 'b'
-    if (keycode == 78) jPlayer().sendEvent('next'); // 'n'
-    if (keycode == 65) { // 'a'
-      var theFile = "{file:encodeURI('" + currentFolder + "&stream=flash')}";
-      loadFile(eval("(" + theFile + ")")); 
-      document.getElementById('error').innerHTML = "Playing all files in this folder"; 
-    }
+window.onload = function() {
+  pollHash();
+  setInterval(pollHash, 1000); 
+}
+
+function pollHash() {
+  if (window.location.hash.replace(/^#/, '') == currentHash.replace(/^#/, '')) {
+    return; // Nothing's changed since last polled. 
   }
+  currentHash = window.location.hash;
+  updateDirectory(currentHash.replace(/^#/, ''));
 }
 
 function changeDir(path) {
+  updateDirectory(path);
+  currentHash = '#' + decodeURIComponent(path);
+  window.location.hash = currentHash;
+}
+
+function updateDirectory(path) {
   document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
-  currentFolder = prefix + path;
-  updateContent(path);
+  currentFolder = path;
+  fetchContent(path);
   document.title = path.replace(/\+/g, ' ');
-  document.getElementById('podcast').href = "index.php?path=" + path + '&stream=rss';
-  document.getElementById('podcast').title = path.replace(/\+/g, ' ') + ' podcast';
-  document.getElementById('permalink').href = "index.php?path=" + path;
+  document.getElementById('podcast').href =  prefix + path + '&stream=rss';
+  document.getElementById('podcast').title = prefix + path.replace(/\+/g, ' ') + ' podcast';
 }
 
 function setStreamtype(path, streamtype) {
-  updateContent(path +  '&streamtype=' + streamtype); 
+  fetchContent(path +  '&streamtype=' + streamtype); 
 }
 
 function setShuffle(path) {
   var shuffle = document.getElementById('shuffle').checked;
-  updateContent(path + '&shuffle=' + shuffle); 
+  fetchContent(path + '&shuffle=' + shuffle); 
 }
 
-function updateContent(path) {
+function fetchContent(path) {
   var http = false;
-  if (navigator.appName == "Microsoft Internet Explorer") {
+  if (navigator.appName.indexOf('Microsoft') != -1) {
       http = new ActiveXObject("Microsoft.XMLHTTP");
   } else {
       http = new XMLHttpRequest();
@@ -65,6 +63,29 @@ function updateContent(path) {
   }
   http.send(null);
 }
+
+function hotkey(e) {
+  var keycode;
+  if (window.event) { keycode = window.event.keyCode; }
+  else if (e) { keycode = e.which; }
+
+  if (keycode == 224 || keycode == 16 || keycode == 17 || keycode == 18) {
+    hotkeyModifier = true; // cmd, shift, ctrl, alt
+  } else if (hotkeyModifier == true ) {
+    hotkeyModifier = false; // modifier has been pressed
+  } else {
+    document.getElementById('error').innerHTML = '';
+    if (keycode == 80) jPlayer().sendEvent('playpause'); // 'p'
+    if (keycode == 66) jPlayer().sendEvent('prev'); // 'b'
+    if (keycode == 78) jPlayer().sendEvent('next'); // 'n'
+    if (keycode == 65) { // 'a'
+      var theFile = "{file:encodeURI('" + prefix + currentFolder + "&stream=flash')}";
+      loadFile(eval("(" + theFile + ")")); 
+      document.getElementById('error').innerHTML = "Playing all files in this folder"; 
+    }
+  }
+}
+
 
 function jPlayer() {
   if (navigator.appName.indexOf("Microsoft") != -1) {

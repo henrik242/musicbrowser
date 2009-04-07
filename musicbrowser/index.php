@@ -15,7 +15,7 @@ $config = array(
   'template' => "template.inc",
   
   # array of allowed music file extensions
-  'fileTypes' =>  array("mp3", "ogg"),
+  'fileTypes' =>  array("mp3"),
   
   # Name of root entry in header
   'homeName' => "Music Browser",
@@ -58,7 +58,7 @@ $config = array(
   'serverPlayer' => "",
 
   # Filename character set.  Usually utf-8 or iso-8859-1.
-  'charset' => "iso-8859-1",
+  'charset' => "utf-8",
 
   # Fetch and show cover images inside folders when listing folders?  
   'folderCovers' => false,

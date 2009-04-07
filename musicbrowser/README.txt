@@ -70,10 +70,12 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.17-SVN
+0.17 (2009-04-07)
 - Some code refactoring
-- New 'securePath' config variable to allow symlinks that points outside
-  'path'
+- New 'securePath' config variable to allow symlinks that points outside 'path'
+- The browser back/forwards buttons now work
+- Bugfix: spaces were trimmed from folders in certain situations
+- Hosting over https should work better now
 
 0.16 (2008-08-11)
 - Added flash player hotkeys: (p)lay/pause, (a)dd all songs, (b)ack, (n)ext
