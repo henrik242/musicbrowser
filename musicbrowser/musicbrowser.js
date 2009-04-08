@@ -61,7 +61,6 @@ function fetchContent(path) {
 }
 
 function httpGet(fullPath) {
-  alert(fullPath);
   var http = false;
   if (navigator.appName.indexOf('Microsoft') != -1) {
     http = new ActiveXObject("Microsoft.XMLHTTP");
