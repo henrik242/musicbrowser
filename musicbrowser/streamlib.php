@@ -114,6 +114,15 @@ class MusicBrowser {
    * Display requested page.
    */
   function show_page() {
+    if (isset($_GET['verify'])) {
+      $result = array();
+      if (!empty($this->infoMessage)) {
+        $result['error'] = $this->pop_messages();
+      }
+      print $this->json_encode($result);
+      exit(0);
+    }
+    
     if ((is_dir(PATH_FULL) || is_file(PATH_FULL)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
       $this->stream_all($_GET['stream'], @$_GET['shuffle']);
@@ -141,8 +150,7 @@ class MusicBrowser {
 
       $result['options'] = $this->show_options();
 
-      $result['error'] = @ $_SESSION['message'];
-      $_SESSION['message'] = "";
+      $result['error'] = $this->pop_messages();
       print $this->json_encode($result);
       exit(0);
     }
@@ -163,7 +171,7 @@ class MusicBrowser {
     if (in_array(FLASH, $this->enabledPlay)) {
       return '<div id="player">JW FLV Player</div>
         <script type="text/javascript">
-          flvObject().write(\'player\');
+          jwObject().write(\'player\');
         </script>';
     }
   }
@@ -352,8 +360,9 @@ class MusicBrowser {
   function show_cover($pathRelative = PATH_RELATIVE) {
     $link = Util::cover_image($pathRelative, $this->directFileAccess);
     if (!empty($link)) {
-      return "<a href=\"$link\"><img border=0 src=\"$link\" width={$this->thumbSize} "
-                 . "height={$this->thumbSize} align=left></a>";
+      return "<a href=\"javascript:showCover('$link')\">"
+           . "<img title=\"View enlarged cover\" alt=\"\" border=0 src=\"$link\" width={$this->thumbSize} "
+           . "height={$this->thumbSize} align=left></a>";
     }
     return "";
   }
@@ -615,6 +624,11 @@ class MusicBrowser {
     $this->infoMessage .= "$msg<br>\n";
     $_SESSION['message'] = $this->infoMessage;
   }
+  
+  function pop_messages() {
+    $_SESSION['message'] = "";
+    return $this->infoMessage;
+  }
 
   /**
    * Try to resolve a safe path.
@@ -800,12 +814,11 @@ class Util {
   }
   
   function play_url($urlPath) {
-    $streamUrl = URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream";
     if (STREAMTYPE == FLASH) {
-       $streamUrl = Util::js_url($streamUrl);
-       return "javascript:loadFile({file:encodeURI('$streamUrl=" . FLASH . "')})";
+       $urlPath = Util::js_url($urlPath);
+       return "javascript:jwPlay('$urlPath', " . SHUFFLE . ")";
     }
-    return "$streamUrl=" . STREAMTYPE;
+    return URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
   }
   
   function cover_image($pathRelative, $directFileAccess) {

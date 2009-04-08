@@ -70,6 +70,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.18 (2009-04-08)
+- Improved error and dialog handling
+- View enlarged cover image without disturbing playback
+- Various small improvements
+
 0.17 (2009-04-07)
 - Some code refactoring
 - New 'securePath' config variable to allow symlinks that points outside 'path'
