@@ -1,10 +1,10 @@
 var currentFolder = '';
 var currentHash = '###';
-var jplayerid = 'mpl';
+var jwPlayerId = 'jwp';
 var prefix = 'index.php?path=';
 var hotkeyModifier = false;
 
-document.onkeydown = hotkey
+document.onkeydown = hotkey;
 
 window.onload = function() {
   pollHash();
@@ -44,17 +44,13 @@ function setShuffle(path) {
 }
 
 function fetchContent(path) {
-  var http = false;
-  if (navigator.appName.indexOf('Microsoft') != -1) {
-      http = new ActiveXObject("Microsoft.XMLHTTP");
-  } else {
-      http = new XMLHttpRequest();
-  }
-  http.open("GET", prefix + path + "&content", true);
-  http.onreadystatechange=function() {
+  var http = httpGet(prefix + path + "&content");
+  http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
-      document.getElementById('error').innerHTML = result.error;
+      if (result.error != '') {
+        showBox('<div class=error>' + result.error + '</div>');
+      }
       document.getElementById('cover').innerHTML = result.cover;
       document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
       document.getElementById('options').innerHTML = result.options;
@@ -62,6 +58,38 @@ function fetchContent(path) {
     }
   }
   http.send(null);
+}
+
+function httpGet(fullPath) {
+  var http = false;
+  if (navigator.appName.indexOf('Microsoft') != -1) {
+    http = new ActiveXObject("Microsoft.XMLHTTP");
+  } else {
+    http = new XMLHttpRequest();
+  }
+  http.open("GET", fullPath, true);
+  return http;
+}
+
+function showCover(picture) {
+  showBox('<img alt="" border=0 src="' + picture + '">');  
+}
+
+function showHelp() {
+  showBox('Flash player hotkeys<br>'
+      + '<b>p</b> - play or pause<br>'
+      + '<b>b</b> - skip back<br>'
+      + '<b>n</b> - skip next<br>'
+      + '<b>a</b> - play everything in this folder<br>');  
+}
+
+function showBox(content) {
+  document.getElementById('box').innerHTML 
+    = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';  
+}
+
+function hideBox() {
+  document.getElementById('box').innerHTML = '';
 }
 
 function hotkey(e) {
@@ -74,33 +102,45 @@ function hotkey(e) {
   } else if (hotkeyModifier == true ) {
     hotkeyModifier = false; // modifier has been pressed
   } else {
-    document.getElementById('error').innerHTML = '';
-    if (keycode == 80) jPlayer().sendEvent('playpause'); // 'p'
-    if (keycode == 66) jPlayer().sendEvent('prev'); // 'b'
-    if (keycode == 78) jPlayer().sendEvent('next'); // 'n'
+    if (keycode == 80) jwPlayer().sendEvent('playpause'); // 'p'
+    if (keycode == 66) jwPlayer().sendEvent('prev'); // 'b'
+    if (keycode == 78) jwPlayer().sendEvent('next'); // 'n'
     if (keycode == 65) { // 'a'
-      var theFile = "{file:encodeURI('" + prefix + currentFolder + "&stream=flash')}";
-      loadFile(eval("(" + theFile + ")")); 
-      document.getElementById('error').innerHTML = "Playing all files in this folder"; 
+      jwPlay(currentFolder, false);
+      showBox("Playing all files in this folder");
+      setTimeout(hideBox, 2000); 
     }
   }
 }
 
-
-function jPlayer() {
+function jwPlayer() {
   if (navigator.appName.indexOf("Microsoft") != -1) {
-    return window[jplayerid];
+    return window[jwPlayerId];
   } else {
-    return document[jplayerid];
+    return document[jwPlayerId];
   }
 }
 
-function loadFile(obj) {
-  jPlayer().loadFile(obj);
+function jwPlay(path, shuffle) {
+  var http = httpGet(prefix + path + "&verify");
+  http.onreadystatechange = function() {
+    if (http.readyState == 4) {
+      var result = eval("(" + http.responseText + ")");
+      if (result.error) {
+        showBox('<div class=error>' + result.error + '</div>');
+      } else {
+        var shuffleText = "";
+        if (shuffle) { shuffleText = "&shuffle=true"; }
+        var theFile = "{file:encodeURI('" + prefix + path + shuffleText + "&stream=flash')}";
+        jwPlayer().loadFile(eval("(" + theFile + ")")); 
+      }
+    }
+  }
+  http.send(null);
 }
 
-function flvObject() {
-  var so = new SWFObject('mediaplayer.swf', jplayerid, '400', '150', '8', "#FFFFFF");
+function jwObject() {
+  var so = new SWFObject('mediaplayer.swf', jwPlayerId, '400', '150', '8', "#FFFFFF");
   so.addParam('allowscriptaccess', 'always');
   so.addParam('allowfullscreen', 'false');
   so.addVariable('height', '150');
