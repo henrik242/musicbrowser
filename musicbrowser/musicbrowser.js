@@ -43,8 +43,8 @@ function setShuffle(path) {
   fetchContent(path + '&shuffle=' + shuffle); 
 }
 
-function fetchContent(path) {
-  var http = httpGet(prefix + path + "&content");
+function fetchContent(path) {  
+  var http = httpGet(prefix + path.replace('&', '%26') + "&content");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
@@ -61,6 +61,7 @@ function fetchContent(path) {
 }
 
 function httpGet(fullPath) {
+  alert(fullPath);
   var http = false;
   if (navigator.appName.indexOf('Microsoft') != -1) {
     http = new ActiveXObject("Microsoft.XMLHTTP");
