@@ -870,21 +870,21 @@ class StreamLib {
    * @param string $name Stream name
    */
   function playlist_asx($entries, $name = "playlist", $convertFromCharset = "iso-8859-1") {
-     $output = "<asx version=\"3.0\">\n";
-     $output .= "<param name=\"encoding\" value=\"utf-8\" />\n";
+     $output = "<asx version=\"3.0\">\r\n";
+     $output .= "<param name=\"encoding\" value=\"utf-8\" />\r\n";
      foreach ($entries as $entry) {
         $title = Util::convert_to_utf8($entry['title'], $convertFromCharset);
-        $output .= "  <entry>\n";
-        $output .= "    <ref href=\"{$entry['url']}\" />\n";
-        if (isset($entry['moreinfo']))  $output .= "    <moreinfo href=\"{$entry['moreinfo']}\" />\n";
-        if (isset($entry['starttime'])) $output .= "    <starttime value=\"{$entry['starttime']}\" />\n";
-        if (isset($entry['duration']))  $output .= "    <duration value=\"{$entry['duration']}\" />\n";
-        if (isset($entry['title']))     $output .= "    <title>$title</title>\n";
-        if (isset($entry['author']))    $output .= "    <author>{$entry['author']}</author>\n";
-        if (isset($entry['copyright'])) $output .= "    <copyright>{$entry['copyright']}</copyright>\n";
-        $output .= "  </entry>\n";
+        $output .= "  <entry>\r\n";
+        $output .= "    <ref href=\"{$entry['url']}\" />\r\n";
+        if (isset($entry['moreinfo']))  $output .= "    <moreinfo href=\"{$entry['moreinfo']}\" />\r\n";
+        if (isset($entry['starttime'])) $output .= "    <starttime value=\"{$entry['starttime']}\" />\r\n";
+        if (isset($entry['duration']))  $output .= "    <duration value=\"{$entry['duration']}\" />\r\n";
+        if (isset($entry['title']))     $output .= "    <title>$title</title>\r\n";
+        if (isset($entry['author']))    $output .= "    <author>{$entry['author']}</author>\r\n";
+        if (isset($entry['copyright'])) $output .= "    <copyright>{$entry['copyright']}</copyright>\r\n";
+        $output .= "  </entry>\r\n";
      }
-     $output .= "</asx>\n";
+     $output .= "</asx>\r\n";
      
      $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
   }
@@ -895,18 +895,18 @@ class StreamLib {
    * @param string $name Stream name
    */
   function playlist_pls($entries, $name = "playlist") {
-     $output = "[playlist]\n";
-     $output .= "X-Gnome-Title=$name\n";
-     $output .= "NumberOfEntries=" . count($entries) . "\n";
+     $output = "[playlist]\r\n";
+     $output .= "X-Gnome-Title=$name\r\n";
+     $output .= "NumberOfEntries=" . count($entries) . "\r\n";
      $counter = 1;
      foreach ($entries as $entry) {
-        $output .= "File$counter={$entry['url']}\n"
-                 . "Title$counter={$entry['title']}\n"
-                 . "Length$counter=-1\n";
+        $output .= "File$counter={$entry['url']}\r\n"
+                 . "Title$counter={$entry['title']}\r\n"
+                 . "Length$counter=-1\r\n";
         $counter++;
      }
      
-     $output .= "Version=2\n";
+     $output .= "Version=2\r\n";
      
      $this->stream_content($output, "$name.pls", "audio/x-scpls");
   }
@@ -916,10 +916,10 @@ class StreamLib {
    * @param string $name Stream name
    */
   function playlist_m3u($entries, $name = "playlist") {
-    $output = "#EXTM3U\n";
+    $output = "#EXTM3U\r\n";
     foreach ($entries as $entry) {
-      $output .= "#EXTINF:0, {$entry['title']}\n"
-               . "{$entry['url']}\n";
+      $output .= "#EXTINF:0, {$entry['title']}\r\n"
+               . "{$entry['url']}\r\n";
     }
      
     $this->stream_content($output, "$name.m3u", "audio/x-mpegurl");
@@ -936,25 +936,25 @@ class StreamLib {
   function playlist_rss($entries, $name = "playlist", $link, $image = "", $charset = "iso-8859-1") {
     $link = htmlspecialchars($link);
     $name = Util::convert_to_utf8(htmlspecialchars($name), $charset);
-    $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-            . "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:atom=\"http://www.w3.org/2005/Atom\" version=\"2.0\">\n"
-            . "<channel><title>$name</title><link>$link</link>\n"
-            . "  <description>$name</description>\n"
-            . "  <atom:link href=\"$link&amp;stream=rss\" rel=\"self\" type=\"application/rss+xml\" />\n";
+    $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+            . "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:atom=\"http://www.w3.org/2005/Atom\" version=\"2.0\">\r\n"
+            . "<channel><title>$name</title><link>$link</link>\r\n"
+            . "  <description>$name</description>\r\n"
+            . "  <atom:link href=\"$link&amp;stream=rss\" rel=\"self\" type=\"application/rss+xml\" />\r\n";
     if (!empty($image)) {
-      $output .= "  <image><url>$image</url><title>$name</title><link>$link</link></image>\n";
+      $output .= "  <image><url>$image</url><title>$name</title><link>$link</link></image>\r\n";
     }
     foreach ($entries as $entry) {
       $date = date('r', $entry['timestamp']);
       $url = htmlspecialchars($entry['url']);
       $title = Util::convert_to_utf8(htmlspecialchars($entry['title']), $charset);
-      $output .= "  <item><title>$title</title>\n"
-               . "    <enclosure url=\"$url\" length=\"{$entry['length']}\" type=\"audio/mpeg\" />\n"
-               . "    <guid>$url</guid>\n"
-               . "    <pubDate>$date</pubDate>\n"
-               . "  </item>\n";
+      $output .= "  <item><title>$title</title>\r\n"
+               . "    <enclosure url=\"$url\" length=\"{$entry['length']}\" type=\"audio/mpeg\" />\r\n"
+               . "    <guid>$url</guid>\r\n"
+               . "    <pubDate>$date</pubDate>\r\n"
+               . "  </item>\r\n";
     }
-    $output .= "</channel></rss>\n";
+    $output .= "</channel></rss>\r\n";
     $this->stream_content($output, "$name.rss", "application/xml", "inline");
   }
 
