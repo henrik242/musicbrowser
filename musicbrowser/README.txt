@@ -70,6 +70,10 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.19 (2009-04-09)
+- Bugfix: ampersands in url hash weren't handled properly
+- Bugfix: use CRLF in playlists
+
 0.18 (2009-04-08)
 - Improved error and dialog handling
 - View enlarged cover image without disturbing playback
