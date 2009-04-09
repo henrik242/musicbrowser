@@ -70,6 +70,9 @@ $config = array(
   # be less secure
   'securePath' => true,    
   
+  # Location of the search db text file
+  'searchDB' => "/tmp/musicbrowser-searchdb.txt",
+  
   # Set to true to display PHP errors and notices.  Should be set to false.
   'debug' => false,
 );
