@@ -64,8 +64,10 @@ a:hover { text-decoration: underline; }
   </td></tr>
   <tr><td></td></tr><tr><td colspan=5>
     <!-- footer -->
-    <table class=footer width="100%"><tr><td width=150>
+    <table class=footer width="100%"><tr><td width=250>
         <a href="#" class=footerlink id=podcast>podcast</a>&nbsp;|&nbsp;<a href="javascript:showHelp()">hotkeys</a>
+        |&nbsp;<a href="javascript:buildDB()">rebuild&nbsp;search&nbsp;db</a>
+        <br><input onFocus="disableHotkeys=true;" onBlur="disableHotkeys=false;" onKeyPress="invokeSearch(event)" id=search size=8>&nbsp;<a href="javascript:search()">search</a>
       </td><td>
       <form method=post action="" name=streamtype>
         <div id=options></div>

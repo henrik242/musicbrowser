@@ -3,6 +3,7 @@ var currentHash = '###';
 var jwPlayerId = 'jwp';
 var prefix = 'index.php?path=';
 var hotkeyModifier = false;
+var disableHotkeys = false;
 
 document.onkeydown = hotkey;
 
@@ -71,6 +72,61 @@ function httpGet(fullPath) {
   return http;
 }
 
+
+function invokeSearch(e) {
+  var characterCode;
+  if (e && e.which) {
+    e = e;
+    characterCode = e.which;
+  } else {
+    e = event;
+    characterCode = e.keyCode;
+  }
+  if (characterCode == 13) {
+    search();
+  }
+}
+
+function search() {
+  var needle = document.getElementById('search').value;
+  if (needle.length < 2) {
+    showBox('<div class=error>Search term must be longer than 2 characters</div>');
+    setTimeout(hideBox, 3000);
+    return;
+  }
+  showBox('<div class=error>Searching...</div>');
+  var http = httpGet(prefix + "&search=" + needle);
+  http.onreadystatechange = function() {
+    if (http.readyState == 4) {
+      var result = eval("(" + http.responseText + ")");
+      document.getElementById('content').innerHTML = result.content;
+      showBox('<div class=error>Found ' + result.numresults + ' results.</div>');
+      setTimeout(hideBox, 3000);
+    }
+  }
+  http.send(null);
+}
+
+
+function buildDB() {
+  var answer = confirm("Are you sure you want to rebuild the search database?");
+  if (!answer) {
+    showBox('<div class=error>Aborted...</div>');
+    setTimeout(hideBox, 3000);
+    return; 
+  }
+  showBox('<div class=error>Building search DB...</div>');
+  var http = httpGet(prefix + "&builddb");
+  http.onreadystatechange = function() {
+    if (http.readyState == 4) {
+      var result = eval("(" + http.responseText + ")");
+      showBox('<div class=error>' + result.error + '</div>');
+      setTimeout(hideBox, 3000);
+    }
+  }
+  http.send(null);
+}
+
 function showCover(picture) {
   showBox('<img alt="" border=0 src="' + picture + '">');  
 }
@@ -93,6 +149,10 @@ function hideBox() {
 }
 
 function hotkey(e) {
+  if (disableHotkeys) {
+    return;
+  }
+
   var keycode;
   if (window.event) { keycode = window.event.keyCode; }
   else if (e) { keycode = e.which; }

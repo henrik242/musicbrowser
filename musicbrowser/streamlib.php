@@ -35,7 +35,7 @@ class MusicBrowser {
   var $headingThreshold = 14;
   var $thumbSize = 150;
   var $allowLocal = false;
-  var $homeName, $streamLib, $fileTypes, $template, $charset;
+  var $homeName, $streamLib, $fileTypes, $template, $charset, $searchDB;
   var $serverPlayer, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
   var $directFileAccess = false;
@@ -114,6 +114,31 @@ class MusicBrowser {
    * Display requested page.
    */
   function show_page() {
+    if (isset($_GET['search'])) {
+      $searchresult = $this->search($_GET['search']);
+      $content = "";
+      foreach ($searchresult as $item) {
+        $item = preg_replace("/[\r\n]/", "", $item);
+        if (is_dir(PATH_ROOT . "/$item")) {
+          $content .= "<a href=\"javascript:changeDir('$item')\">$item</a><br>";
+        } else {
+          $content .= "<a href=\"javascript:jwPlay('$item')\">$item</a><br>";
+        }
+      }
+      $result = array();
+      $result['content'] = $content;
+      $result['numresults'] = count($searchresult);
+      print $this->json_encode($result);
+      exit(0);
+    }
+    
+    if (isset($_GET['builddb'])) {
+      $result = array();
+      $result['error'] = $this->build_searchdb(PATH_ROOT);
+      print $this->json_encode($result);
+      exit(0);
+    }
+    
     if (isset($_GET['verify'])) {
       $result = array();
       if (!empty($this->infoMessage)) {
@@ -699,6 +724,56 @@ class MusicBrowser {
 
   function pathinfo_basename($file) {
      return array_pop(explode("/", $file));
+  }
+  
+  function search($needle) {
+    $handle = false;
+    if (!$handle = fopen($this->searchDB, 'r')) {
+        $error = "Cannot open file ({$this->searchDB})";
+    }
+    $result = array();
+    while (!feof($handle)) {
+        $buffer = fgets($handle, 4096);
+        if (strpos($buffer, $needle) !== false) {
+          $result[] = $buffer;
+        }
+    }
+    fclose($handle);
+    return $result;
+  }
+
+  function build_searchdb($from) {
+    $handle = false;
+    $message = false;
+    
+    if (!$this->allowLocal) {
+      $message = "Not authorized";      
+    } elseif (!$handle = fopen($this->searchDB, 'w')) {
+      $message = "Cannot open file ({$this->searchDB})";
+    } else {
+      chdir($from);
+      $dirs = array('.');  
+      while (NULL !== ($dir = array_pop($dirs))) {  
+        if ($dh = opendir($dir)) {
+          while (false !== ($entry = readdir($dh))) {      
+            if ($entry == '.' || $entry == '..') continue;        
+            
+            $path = "$dir/$entry";
+            if (is_file($path) && !$this->valid_suffix($entry)) continue;
+            
+            if (fwrite($handle, substr("$path\n",2)) === FALSE) {
+                $message = "Cannot write \"$path\" to file ({$this->searchDB})";
+                break 2;
+            }
+            if (is_dir($path)) $dirs[] = $path;        
+          }      
+          closedir($dh);      
+        }    
+      }
+      $message = "Search DB built successfully";
+    }
+    fclose($handle);
+    return $message; 
   }
 
 }
