@@ -28,23 +28,23 @@ function changeDir(path) {
 function updateDirectory(path) {
   document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
   currentFolder = path;
-  fetchContent(path);
+  fetchContent(path.replace('&', '%26'));
   document.title = path.replace(/\+/g, ' ');
   document.getElementById('podcast').href =  prefix + path + '&stream=rss';
   document.getElementById('podcast').title = prefix + path.replace(/\+/g, ' ') + ' podcast';
 }
 
 function setStreamtype(path, streamtype) {
-  fetchContent(path +  '&streamtype=' + streamtype); 
+  fetchContent(path.replace('&', '%26') +  '&streamtype=' + streamtype); 
 }
 
 function setShuffle(path) {
   var shuffle = document.getElementById('shuffle').checked;
-  fetchContent(path + '&shuffle=' + shuffle); 
+  fetchContent(path.replace('&', '%26') + '&shuffle=' + shuffle); 
 }
 
 function fetchContent(path) {  
-  var http = httpGet(prefix + path.replace('&', '%26') + "&content");
+  var http = httpGet(prefix + path + "&content");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
