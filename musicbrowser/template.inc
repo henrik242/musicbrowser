@@ -23,7 +23,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style type="text/css">
 <!-- 
-th { background-color: #3E606F; color: #FCFFF5; }
+th { background-color: #3E606F; color: #FCFFF5; text-align: center; }
 a { color: #2222AA; text-decoration: none; }
 a:hover { text-decoration: underline; }
 form { display: inline; }

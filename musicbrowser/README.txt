@@ -70,6 +70,9 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.21-svn
+- ...
+
 0.20 (2009-04-13)
 - Added search
 - Added XSPF playlist support (thanks to Christopher Eykamp)

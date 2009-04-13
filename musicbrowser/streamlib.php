@@ -28,7 +28,8 @@ define('SLIM', 'slim');
 define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
-define('VERSION', '0.20');
+
+define('VERSION', '0.21-svn');
 
 class MusicBrowser {
   
