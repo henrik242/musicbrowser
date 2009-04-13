@@ -3,7 +3,10 @@ var currentHash = '###';
 var jwPlayerId = 'jwp';
 var prefix = 'index.php?path=';
 var hotkeyModifier = false;
-var disableHotkeys = false;
+var hotkeysDisabled = false;
+var flashWidth = 500;
+var flashHeight = 150;
+var boxTimeout;
 
 document.onkeydown = hotkey;
 
@@ -12,20 +15,46 @@ window.onload = function() {
   setInterval(pollHash, 1000); 
 }
 
+/*
+ * Poll the url hash regularly for changes.
+ */
 function pollHash() {
-  if (window.location.hash.replace(/^#/, '') == currentHash.replace(/^#/, '')) {
+  var locationHash = window.location.hash.replace(/^#/, '');
+  if (locationHash == currentHash) {
     return; // Nothing's changed since last polled. 
   }
-  currentHash = window.location.hash;
-  updateDirectory(currentHash.replace(/^#/, ''));
+  currentHash = locationHash;
+  switch (currentHash.substr(0,1)) {
+      case 'p':
+        updateDirectory(currentHash.replace(/^p=/, ''));
+        break;
+      case 's':
+        search(currentHash.replace(/^s=/, ''));
+        break;
+      default:
+        updateDirectory('');
+  }
 }
 
+/*
+ * Change to previous directory.
+ */
+function previousDir() {
+  history.go(-1);
+}
+
+/*
+ * Change directory.
+ */
 function changeDir(path) {
   updateDirectory(path);
-  currentHash = '#' + decodeURIComponent(path);
-  window.location.hash = currentHash;
+  currentHash = 'p=' + decodeURIComponent(path);
+  window.location.hash = '#' + currentHash;
 }
 
+/*
+ * Update content tag with specified content from specified path.
+ */
 function updateDirectory(path) {
   document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
   currentFolder = path;
@@ -33,17 +62,27 @@ function updateDirectory(path) {
   document.title = path.replace(/\+/g, ' ');
   document.getElementById('podcast').href =  prefix + path + '&stream=rss';
   document.getElementById('podcast').title = prefix + path.replace(/\+/g, ' ') + ' podcast';
+  document.getElementById('podcast').innerHTML = 'podcast';
 }
 
+/*
+ * Set stream type.
+ */
 function setStreamtype(path, streamtype) {
   fetchContent(path.replace('&', '%26') +  '&streamtype=' + streamtype); 
 }
 
+/*
+ * Enable/disable shuffle.
+ */
 function setShuffle(path) {
   var shuffle = document.getElementById('shuffle').checked;
   fetchContent(path.replace('&', '%26') + '&shuffle=' + shuffle); 
 }
 
+/*
+ * HTTP GET content from path.
+ */
 function fetchContent(path) {  
   var http = httpGet(prefix + path + "&content");
   http.onreadystatechange = function() {
@@ -61,6 +100,10 @@ function fetchContent(path) {
   http.send(null);
 }
 
+/*
+ * HTTP GET.
+ * @return HTTP object
+ */
 function httpGet(fullPath) {
   var http = false;
   if (navigator.appName.indexOf('Microsoft') != -1) {
@@ -72,65 +115,106 @@ function httpGet(fullPath) {
   return http;
 }
 
+/*
+ * Enable search field, disable global hotkeys.
+ */
+function enableSearch() {
+  hotkeysDisabled = true;
+  var elem = document.getElementById('search');
+  elem.value = '';
+}
 
+/*
+ * Disable search field, enable global hotkeys.
+ */
+function disableSearch() {
+  hotkeysDisabled = false;
+  var elem = document.getElementById('search');
+  elem.value = 'search';
+}
+
+/*
+ * Invoke search on keypress==return.
+ */
 function invokeSearch(e) {
-  var characterCode;
-  if (e && e.which) {
-    e = e;
-    characterCode = e.which;
-  } else {
-    e = event;
-    characterCode = e.keyCode;
-  }
-  if (characterCode == 13) {
+  var keynum = getKeyNum(e);
+  if (keynum == 13) {
     search();
   }
 }
 
-function search() {
-  var needle = document.getElementById('search').value;
+/*
+ * Search for file or folder.
+ * @param needle Use this needle.  Uses search field from page if empty.
+ */
+function search(needle) {
+  if (!needle) {
+    needle = document.getElementById('search').value;
+  }
   if (needle.length < 2) {
-    showBox('<div class=error>Search term must be longer than 2 characters</div>');
-    setTimeout(hideBox, 3000);
+    showBox('<div class=error>Search term must be longer than 2 characters</div>', 3000);
     return;
   }
+  currentHash = 's=' + needle;
+  window.location.hash = '#' + currentHash;
+  var startTime = new Date().getSeconds();
   showBox('<div class=error>Searching...</div>');
   var http = httpGet(prefix + "&search=" + needle);
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
-      document.getElementById('content').innerHTML = result.content;
-      showBox('<div class=error>Found ' + result.numresults + ' results.</div>');
-      setTimeout(hideBox, 3000);
+      if (result.error) {
+        showBox('<div class=error>' + result.error + '</div>');
+      } else {
+        if (result.numresults > 0) {
+          document.getElementById('content').innerHTML = result.content;
+          document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
+          document.getElementById('cover').innerHTML = '';
+
+          // I should enable options and podcasts for searches as well:
+          document.getElementById('options').innerHTML = '';
+          document.getElementById('podcast').href = '#';
+          document.getElementById('podcast').title = '';
+          document.getElementById('podcast').innerHTML = '';
+        }
+        var seconds = new Date().getSeconds() - startTime;
+        showBox('Found ' + result.numresults + ' results in ' + seconds + ' seconds.', 3000);
+      }
     }
   }
   http.send(null);
 }
 
-
+/*
+ * Rebuild search database.
+ */
 function buildDB() {
   var answer = confirm("Are you sure you want to rebuild the search database?");
   if (!answer) {
-    showBox('<div class=error>Aborted...</div>');
-    setTimeout(hideBox, 3000);
+    showBox('<div class=error>Aborted...</div>', 3000);
     return; 
   }
-  showBox('<div class=error>Building search DB...</div>');
+  showBox('Building search DB...');
   var http = httpGet(prefix + "&builddb");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
-      showBox('<div class=error>' + result.error + '</div>');
-      setTimeout(hideBox, 3000);
+      showBox('<div class=error>' + result.error + '</div>', 3000);
     }
   }
   http.send(null);
 }
 
+/*
+ * Show album cover.
+ */
 function showCover(picture) {
   showBox('<img alt="" border=0 src="' + picture + '">');  
 }
 
+/*
+ * Show flash player hotkeys.
+ */
 function showHelp() {
   showBox('Flash player hotkeys<br>'
       + '<b>p</b> - play or pause<br>'
@@ -139,40 +223,70 @@ function showHelp() {
       + '<b>a</b> - play everything in this folder<br>');  
 }
 
-function showBox(content) {
+/*
+ * Shows a dialogue.
+ */
+function showBox(content, timeout) {
   document.getElementById('box').innerHTML 
-    = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';  
+    = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';
+  if (timeout) {
+    hideBoxDelayed(timeout);
+  }
 }
 
+function hideBoxDelayed(timeout) {
+  clearTimeout(boxTimeout);
+  boxTimeout = setTimeout(hideBox, timeout);
+}
+
+/*
+ * Hides the dialogue.
+ * @see showBox()
+ */
 function hideBox() {
   document.getElementById('box').innerHTML = '';
 }
 
+/*
+ * @return keynum from keypress
+ */
+function getKeyNum(e) {
+  var keynum;
+  if (window.event) { // IE
+    keynum = e.keyCode;
+  } else if (e.which) { // Netscape/Firefox/Opera
+    keynum = e.which;
+  }
+  return keynum;
+}
+
+/*
+ * Execute hotkey for flash player.
+ */
 function hotkey(e) {
-  if (disableHotkeys) {
+  if (hotkeysDisabled) {
     return;
   }
+  var keynum = getKeyNum(e);
 
-  var keycode;
-  if (window.event) { keycode = window.event.keyCode; }
-  else if (e) { keycode = e.which; }
-
-  if (keycode == 224 || keycode == 16 || keycode == 17 || keycode == 18) {
+  if (keynum == 224 || keynum == 16 || keynum == 17 || keynum == 18) {
     hotkeyModifier = true; // cmd, shift, ctrl, alt
   } else if (hotkeyModifier == true ) {
     hotkeyModifier = false; // modifier has been pressed
   } else {
-    if (keycode == 80) jwPlayer().sendEvent('playpause'); // 'p'
-    if (keycode == 66) jwPlayer().sendEvent('prev'); // 'b'
-    if (keycode == 78) jwPlayer().sendEvent('next'); // 'n'
-    if (keycode == 65) { // 'a'
+    if (keynum == 80) jwPlayer().sendEvent('playpause'); // 'p'
+    if (keynum == 66) jwPlayer().sendEvent('prev'); // 'b'
+    if (keynum == 78) jwPlayer().sendEvent('next'); // 'n'
+    if (keynum == 65) { // 'a'
       jwPlay(currentFolder, false);
-      showBox("Playing all files in this folder");
-      setTimeout(hideBox, 2000); 
+      showBox("Playing all files in this folder", 3000);
     }
   }
 }
 
+/*
+ * @return Instance of the JW Flash Player
+ */
 function jwPlayer() {
   if (navigator.appName.indexOf("Microsoft") != -1) {
     return window[jwPlayerId];
@@ -181,6 +295,9 @@ function jwPlayer() {
   }
 }
 
+/*
+ * Play specified file or folder in the Flash Player.
+ */
 function jwPlay(path, shuffle) {
   var http = httpGet(prefix + path + "&verify");
   http.onreadystatechange = function() {
@@ -199,12 +316,15 @@ function jwPlay(path, shuffle) {
   http.send(null);
 }
 
+/*
+ * @return A JW Flash Player SWF object
+ */
 function jwObject() {
-  var so = new SWFObject('mediaplayer.swf', jwPlayerId, '400', '150', '8', "#FFFFFF");
+  var so = new SWFObject('mediaplayer.swf', jwPlayerId, flashWidth, flashHeight, '8', "#FFFFFF");
   so.addParam('allowscriptaccess', 'always');
   so.addParam('allowfullscreen', 'false');
-  so.addVariable('height', '150');
-  so.addVariable('width', '400');
+  so.addVariable('height', flashHeight);
+  so.addVariable('width', flashWidth);
   so.addVariable('file', '');
   so.addVariable('displaywidth', '0');
   so.addVariable('showstop', 'true');

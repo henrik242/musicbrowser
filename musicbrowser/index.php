@@ -26,7 +26,7 @@ $config = array(
   # Which play modes to enable, and the order they are shown in.
   # May be one or more of FLASH, M3U, PLS, ASX, SLIM and SERVER.  SLIM and SERVER may be 
   # disabled for remote users by the allowLocal setting even if they are enabled here.
-  'enabledPlay' => array(FLASH, M3U, PLS, ASX, SLIM, SERVER, XBMC), 
+  'enabledPlay' => array(FLASH, M3U, PLS, ASX, XSPF, SLIM, SERVER, XBMC),
   
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
   #  'slimserverUrl' => 'http://myserver:9000'.  Leave blank to disable.
@@ -63,9 +63,6 @@ $config = array(
   # Fetch and show cover images inside folders when listing folders?  
   'folderCovers' => false,
 
-  # Width of flash player
-  'columnWidth' => 300,
-  
   # 'securePath' => false allows symlinks to folders outside the 'path' folder, but might 
   # be less secure
   'securePath' => true,    

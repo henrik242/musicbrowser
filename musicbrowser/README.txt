@@ -65,11 +65,16 @@ Also, PLS playlists will play just fine when opened in iTunes.
   play on Squeezebox.
 Try opening the URL from the error message into a new browser window.
 You might see that you need to lower your CSRF Protection Level in
-SqueezeCenter » Settings » Advanced » Security.
+SqueezeCenter Â» Settings Â» Advanced Â» Security.
 
 
 Changelog
 ---------
+0.20 (2009-04-13)
+- Added search
+- Added XSPF playlist support (thanks to Christopher Eykamp)
+- Small UI changes
+
 0.19 (2009-04-09)
 - Bugfix: ampersands in url hash weren't handled properly
 - Bugfix: use CRLF in playlists
