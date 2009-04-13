@@ -26,7 +26,7 @@
 th { background-color: #3E606F; color: #FCFFF5; }
 a { color: #2222AA; text-decoration: none; }
 a:hover { text-decoration: underline; }
-.footerlink { text-decoration: none; }
+form { display: inline; }
 .header { background-color: #91AA9D; }
 .footer { background-color: #91AA9D; font-size: 0.8em; }
 .folder { font-size: 0.8em; }
@@ -38,42 +38,44 @@ a:hover { text-decoration: underline; }
 .path { font-weight: bold; }
 .loading { text-decoration: blink; text-align: center; font-style: italic; }
 #box { display: block; color: black; position:fixed; padding: 1em; top: 30px; left: 70px; }
-.box { padding: 10px; background-color: lightgray; }
+.box { padding: 10px; background-color: #CCC; }
 .boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
 .boxbutton:link { text-decoration: none;  }
-#options { text-align: center; }
 .error { color: red; }
-#content { text-align: center; }
-#breadcrumb { text-align: center; }
+.feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
+.leftheader { text-align: left; vertical-align: top; }
+.rightheader { text-align: right; vertical-align: top;}
+#content { text-align: left; }
+#breadcrumb { text-align: left; padding-bottom: 10px; }
+.searchresult {list-style-type: none}
 -->
   </style>
   <script type="text/javascript" src="musicbrowser.js"></script>
 </head>
 <body>
   <div id=box></div>
-  <table align=center width="95%"><tr><td colspan=5>
-    <!-- header -->
+  <table align=center width="95%">
+  <!-- header -->
+  <tr><td colspan=5>
     <table class=header width="100%"><tr>
-      <td width=400 id=cover></td>
-      <td id=breadcrumb></td>
-      <td align=right width=400>%flash_player%</td>
+      <td class=leftheader><div id=breadcrumb></div><div id=cover></div></td>
+      <td class=rightheader>%flash_player%</td>
     </tr></table>
-    <!-- end header -->
-  </td></tr><tr><td colspan=5 id=content>
+  </td></tr>
+  <!-- end header -->
+  <tr><td colspan=5 id=content>
     <div class=loading>initializing...</div>
   </td></tr>
   <tr><td></td></tr><tr><td colspan=5>
     <!-- footer -->
-    <table class=footer width="100%"><tr><td width=250>
-        <a href="#" class=footerlink id=podcast>podcast</a>&nbsp;|&nbsp;<a href="javascript:showHelp()">hotkeys</a>
-        |&nbsp;<a href="javascript:buildDB()">rebuild&nbsp;search&nbsp;db</a>
-        <br><input onFocus="disableHotkeys=true;" onBlur="disableHotkeys=false;" onKeyPress="invokeSearch(event)" id=search size=8>&nbsp;<a href="javascript:search()">search</a>
-      </td><td>
-      <form method=post action="" name=streamtype>
-        <div id=options></div>
-      </form>
-    </td><td width=150 align=right>
-      <a class=footerlink href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a>
+    <table class=footer width="100%"><tr><td>
+      %searchfield%
+      <form method=post action="" name=streamtype><span id=options></span></form>
+    </td><td align=right>
+      <a class=feet href="#" class=feet id=podcast>podcast</a>|
+      <a class=feet href="javascript:showHelp()">hotkeys</a>|
+      %admin%
+      <span class=feet><a href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a> v%version%</span>
     </td></tr></table>
     <!-- end footer -->
   </td></tr></table>

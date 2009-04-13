@@ -27,13 +27,15 @@ define('PLS', 'pls');
 define('SLIM', 'slim');
 define('RSS', 'rss');
 define('XBMC', 'xbmc');
+define('XSPF', 'xspf');
+define('VERSION', '0.20');
 
 class MusicBrowser {
   
   var $columns = 5;
   var $infoMessage = '';
   var $headingThreshold = 14;
-  var $thumbSize = 150;
+  var $thumbSize = 100;
   var $allowLocal = false;
   var $homeName, $streamLib, $fileTypes, $template, $charset, $searchDB;
   var $serverPlayer, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
@@ -51,10 +53,10 @@ class MusicBrowser {
       ini_set('display_errors', 0);
     }
     if (!function_exists('preg_match')) {
-      $this->fatal_error('The preg_match function does not exist. Your PHP installation lacks the PCRE extension');
+      $this->show_fatal_error('The preg_match function does not exist. Your PHP installation lacks the PCRE extension');
     }
     if (!is_readable($config['template'])) {
-      $this->fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
+      $this->show_fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
     
     session_start();
@@ -63,6 +65,10 @@ class MusicBrowser {
     $this->streamLib = new StreamLib();
   }
 
+  /**
+   * Resolves the configuration.
+   * @param array $config
+   */
   function resolve_config($config) {
     $this->resolve_url($config['url']); // need to resolve url before path
   
@@ -91,12 +97,16 @@ class MusicBrowser {
     }
     $this->resolve_path($config['path']);
     
-    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->unsetEnabledPlay(SLIM);
-    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->unsetEnabledPlay(SERVER);
-    if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->unsetEnabledPlay(XBMC);
+    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disablePlayMethod(SLIM);
+    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disablePlayMethod(SERVER);
+    if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->disablePlayMethod(XBMC);
   }
 
-  function unsetEnabledPlay($disable) {
+  /**
+   * Disable an allowed play method.
+   * @param string $disable Play method to disable
+   */
+  function disablePlayMethod($disable) {
     foreach ($this->enabledPlay as $key => $var) {
       if ($var == $disable) {
         unset($this->enabledPlay[$key]);
@@ -105,52 +115,33 @@ class MusicBrowser {
     }
   }
 
-  function fatal_error($message) {
+  /**
+   * Exit with error.
+   * @param string $message Error message
+   */
+  function show_fatal_error($message) {
     echo "<html><body text=red>ERROR: $message</body></html>";
     exit(0);
   }
   
+  
   /**
-   * Display requested page.
+   * Display requested page, or deliver ajax content.
    */
   function show_page() {
     if (isset($_GET['search'])) {
-      $searchresult = $this->search($_GET['search']);
-      $content = "";
-      foreach ($searchresult as $item) {
-        $item = preg_replace("/[\r\n]/", "", $item);
-        if (is_dir(PATH_ROOT . "/$item")) {
-          $content .= "<a href=\"javascript:changeDir('$item')\">$item</a><br>";
-        } else {
-          $content .= "<a href=\"javascript:jwPlay('$item')\">$item</a><br>";
-        }
-      }
-      $result = array();
-      $result['content'] = $content;
-      $result['numresults'] = count($searchresult);
-      print $this->json_encode($result);
-      exit(0);
-    }
-    
+      $this->show_search(); // Exits
+    }    
     if (isset($_GET['builddb'])) {
-      $result = array();
-      $result['error'] = $this->build_searchdb(PATH_ROOT);
-      print $this->json_encode($result);
-      exit(0);
-    }
-    
+      $this->show_builddb(); // Exits
+    }    
     if (isset($_GET['verify'])) {
-      $result = array();
-      if (!empty($this->infoMessage)) {
-        $result['error'] = $this->pop_messages();
-      }
-      print $this->json_encode($result);
-      exit(0);
+      $this->show_verify(); // Exits
     }
     
     if ((is_dir(PATH_FULL) || is_file(PATH_FULL)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
-      $this->stream_all($_GET['stream'], @$_GET['shuffle']);
+      $this->stream($_GET['stream'], @$_GET['shuffle']);
       exit(0);
     } elseif (is_file(PATH_FULL)) {
       # If the path is a file, download it
@@ -162,37 +153,137 @@ class MusicBrowser {
     $this->set_stream_type();
 
     if (isset($_GET['content'])) {
-      $result = array();
-      $items = $this->list_folder(PATH_FULL);
-      $content = $this->show_folder($items);
-      $result['content'] = '<table width="100%">' . $content . "</table>";
-
-      $result['cover'] = $this->show_cover();
-
-      $linkedPath = $this->show_header();
-      $linkedTitle = "<a class=title href=\"javascript:changeDir('')\">{$this->homeName}</a>";
-      $result['breadcrumb'] = "$linkedTitle<br>$linkedPath";
-
-      $result['options'] = $this->show_options();
-
-      $result['error'] = $this->pop_messages();
-      print $this->json_encode($result);
-      exit(0);
+      $this->show_content(); // Exits
     }
     
     if (isset($_GET['message'])) {
       $this->add_message($_GET['message']);
     }
 
-    $search = array("/%folder%/", "/%flash_player%/");
-    $replace = array(addslashes(PATH_RELATIVE), $this->show_flashplayer());
+    $search = array("/%folder%/", "/%flash_player%/", "/%searchfield%/", "/%admin%/", "/%version%/");
+    $replace = array(addslashes(PATH_RELATIVE), $this->html_flashplayer(), $this->html_searchfield(), 
+        $this->html_admin(), VERSION);
 
     $template = implode("", file($this->template));
     print preg_replace($search, $replace, $template);
     exit(0);
   }
-  
-  function show_flashplayer() {
+
+  /**
+   * Content for a page (JSON).  Exits.
+   */
+  function show_content() {
+      $items = $this->list_folder(PATH_FULL);
+      $content = $this->html_folder($items);
+
+      $result = array();
+      $result['content'] = '<table width="100%">' . $content . "</table>";
+      $result['cover'] = $this->html_cover();
+      $result['breadcrumb'] = $this->html_breadcrumb();
+      $result['options'] = $this->html_options();
+      $result['error'] = $this->pop_messages();
+      
+      print $this->json_encode($result);
+      exit(0);
+  }
+
+  /**
+   * @return string Search field (HTML).
+   */
+  function html_searchfield() {
+    if (!empty($this->searchDB) && is_readable($this->searchDB)) { 
+      return '<input value="search" onFocus="enableSearch()" onBlur="disableSearch()" onKeyPress="invokeSearch(event)" 
+         id=search size=14>';
+    }
+    return '';
+  }
+
+  /**
+   * @return string Admin field (HTML).
+   */
+  function html_admin() {
+    if ($this->allowLocal && !empty($this->searchDB)) {
+      return ' <a class=feet href="javascript:buildDB()">rebuild search db</a>|';  
+    } 
+    return '';
+  }
+
+  /**
+   * Initialize SHUFFLE and STREAMTYPE defines in cases where they're not defined (i.e. search).
+   * @see show_search()
+   */
+  function init_shuffle_and_streamtype() {
+    if (!defined('SHUFFLE')) {
+      if (isset($_SESSION['shuffle'])) {
+        define('SHUFFLE', $_SESSION['shuffle']);
+      } else {
+        define('SHUFFLE', "false");
+      }
+    }
+    if (!defined('STREAMTYPE')) {
+      if (isset($_SESSION['streamtype'])) {
+        define('STREAMTYPE', $_SESSION['streamtype']);
+      } else {
+        define('STREAMTYPE', FLASH);
+      }
+    }
+  }
+
+  /**
+   * Search results (JSON).  Exits.
+   */
+  function show_search() {
+    $needle = preg_replace("/[^a-zA-Z0-9 +-]/", "", $_GET['search']);
+    $this->init_shuffle_and_streamtype();
+    $searchresult = $this->search($needle);
+
+    $content = "<ul class=searchresult>\n";
+    foreach ($searchresult as $entry) {
+      $entry = preg_replace("/[\r\n]/", "", $entry);
+      $item = new Item($entry, $this->charset, $this->directFileAccess, false);
+
+      if (is_dir(PATH_ROOT . "/$entry")) {
+        $content .= '<li>' . $item->dir_link() . '</li>\n';
+      } else {
+        $content .= '<li>' . $item->file_link() . '</li>\n';
+      }
+    }
+    $result = array();
+    $result['content'] = "$content</ul>";
+    $result['numresults'] = count($searchresult);
+    $result['breadcrumb'] = $this->html_linkedtitle() . ': search for "' . $needle . '"'
+     . "<br> <a class=folder href=\"javascript:previousDir()\">[go back]</a>\n";
+    $result['error'] = $this->pop_messages();
+    print $this->json_encode($result);
+    exit(0);
+  }
+
+  /**
+   * Rebuilds search database (JSON). Exits.
+   */
+  function show_builddb() {
+      $result = array();
+      $result['error'] = $this->build_searchdb(PATH_ROOT);
+      print $this->json_encode($result);
+      exit(0);
+  }
+
+  /**
+   * Displays the already verified path validity (JSON).  Exits.
+   */
+  function show_verify() {
+      $result = array();
+      if (!empty($this->infoMessage)) {
+        $result['error'] = $this->pop_messages();
+      }
+      print $this->json_encode($result);
+      exit(0);
+  }
+
+  /**
+   * @return string The HTML that is required to display the flash player.
+   */
+  function html_flashplayer() {
     if (in_array(FLASH, $this->enabledPlay)) {
       return '<div id="player">JW FLV Player</div>
         <script type="text/javascript">
@@ -200,7 +291,12 @@ class MusicBrowser {
         </script>';
     }
   }
-  
+
+  /**
+   * Simple JSON encoder.
+   * @param array $array Array to encode
+   * @return string JSON encoded content
+   */
   function json_encode($array) {
     $json = array();
     $search = array('|"|', '|/|', "/\n/");
@@ -217,7 +313,7 @@ class MusicBrowser {
    *
    * @return string Formatted HTML with folder content
    */
-  function show_folder($items) {
+  function html_folder($items) {
 
     $output = "";
     if (count($items) > 0) {
@@ -255,17 +351,19 @@ class MusicBrowser {
     return $output;
   }
 
-
-  function show_options() {
+  /**
+   * @return string Playback type selector (HTML)
+   */
+  function html_options() {
     $select = array();
     foreach ($this->enabledPlay as $list) {
       $select[$list] = "";
     }
     if (array_key_exists(STREAMTYPE, $select)) {
-      $select[STREAMTYPE] = 'CHECKED';
+      $select[STREAMTYPE] = 'SELECTED';
     }
-    $output = "";
     $pathEncoded = Util::path_encode(PATH_RELATIVE);
+    $output = "<span class=feet>Play as <select name=streamtype onChange=\"setStreamtype('" . $pathEncoded . "', options[this.selectedIndex].value)\">";
     foreach ($select as $type => $checked) {
       switch ($type) {
         case SERVER:
@@ -280,20 +378,20 @@ class MusicBrowser {
         default:
           $display = $type;
       }
-      $output .= "<input type=radio name=streamtype value=$type "
-               . " onClick=\"setStreamtype('" . $pathEncoded . "', '" . $type . "')\" $checked>$display\n";
+      $output .= "<option value=$type $checked>$display</option>\n";
     }
+    $output .= "</select></span>";
     $checked = "";
     if (SHUFFLE == 'true') {
       $checked = "CHECKED";
     } 
-    $output .= "&nbsp;&nbsp;<input id=shuffle type=checkbox name=shuffle "
-             . " onClick=\"setShuffle('" . $pathEncoded . "')\" $checked>shuffle\n";
+    $output .= "<span class=feet><input id=shuffle type=checkbox name=shuffle "
+             . " onClick=\"setShuffle('" . $pathEncoded . "')\" $checked>shuffle</span>\n";
     return $output;
   }
 
   /**
-   * Group $items by initial, with a minimum amount in each group 
+   * Group $items by the first letter, with a minimum amount in each group.
    * @see $this->headingThreshold
    */
   function group_items($items) {
@@ -382,7 +480,7 @@ class MusicBrowser {
   /**
    * @return string Formatted HTML with cover image (if any)
    */
-  function show_cover($pathRelative = PATH_RELATIVE) {
+  function html_cover($pathRelative = PATH_RELATIVE) {
     $link = Util::cover_image($pathRelative, $this->directFileAccess);
     if (!empty($link)) {
       return "<a href=\"javascript:showCover('$link')\">"
@@ -391,18 +489,21 @@ class MusicBrowser {
     }
     return "";
   }
-  
+
+  function html_linkedtitle() {
+    return "<a class=title href=\"javascript:changeDir('')\">{$this->homeName}</a>";
+  }
 
   /**
    * @return string Formatted HTML with bread crumbs for folder
    */
-  function show_header() {
+  function html_breadcrumb() {
     $path = PATH_RELATIVE;
     $parts = explode("/", trim($path, "/"));
     if ($parts[0] == '') {
       $parts = array();
     }
-    $items = array();
+    $items = array($this->html_linkedtitle());
     $currentPath = $encodedPath = "";
     for ($i = 0; $i < count($parts); $i++) {
       $currentPath .= "/{$parts[$i]}";
@@ -415,7 +516,7 @@ class MusicBrowser {
         $items[] = "<span class=path>$displayItem</span>";
       }
     }
-    $output = implode(" &raquo; ", $items);
+    $output = implode(" &nbsp;&raquo;&nbsp;", $items);
 
     # Output "play all"
     $output .= "&nbsp;&nbsp;<a href=\"" . Util::play_url($encodedPath) . "\"><img 
@@ -425,7 +526,7 @@ class MusicBrowser {
   }
 
   /**
-   * Checks if $entry has any of the $fileTypes
+   * Checks if $entry has any of the $fileTypes.
    *
    * @return boolean True if valid.
    */
@@ -460,7 +561,7 @@ class MusicBrowser {
   /**
    * Stream folder or file.
    */
-  function stream_all($type, $shuffle) {
+  function stream($type, $shuffle) {
     if ($type == SLIM && $this->allowLocal) {
       $this->play_slimserver(PATH_RELATIVE);
       return;
@@ -516,6 +617,15 @@ class MusicBrowser {
       case PLS:
         $this->streamLib->playlist_pls($entries, $name);
         break;
+      case XSPF:
+ 		$url = URL_FULL . "?path=" . Util::path_encode(PATH_RELATIVE);
+ 		$coverImage = Util::cover_image(PATH_RELATIVE, $this->directFileAccess);
+ 		$image = "";
+ 		if (!empty($coverImage)) {
+ 		  $image = URL_ROOT . "/$coverImage";
+        }
+        $this->streamLib->playlist_xspf($entries, $name, $url, $image, $this->charset);
+        break;
       case ASX:
       case FLASH:
         $this->streamLib->playlist_asx($entries, $name, $this->charset);
@@ -551,7 +661,7 @@ class MusicBrowser {
   }
 
   /**
-   * Invokes an action on the XBMC.
+   * Invokes an action on XBMC.
    * @see http://xbmc.org/wiki/?title=WebServerHTTP-API 
    */
   function invoke_xbmc($command, $parameter = "") {
@@ -561,6 +671,10 @@ class MusicBrowser {
     return $data;
   }
 
+  /**
+   * Play an item on XBMC. Exits.
+   * @param string $item Item to play
+   */
   function play_xbmc($item) {
     $data = $this->invoke_xbmc("Action", "13"); // ACTION_STOP
     $data = $this->invoke_xbmc("ClearPlayList", "0");
@@ -578,7 +692,8 @@ class MusicBrowser {
   }
   
   /**
-   * play_server uses system() and might be VERY UNSAFE!
+   * Play item(s) on the local server.  Exits.  This server uses system() and might be VERY UNSAFE!
+   * @param array $items Array of items to play
    */
   function play_server($items) {
     $args = "";
@@ -594,6 +709,10 @@ class MusicBrowser {
     $this->reload_page(); //exits
   }
 
+  /**
+   * Play item on Slimserver.  Exits.
+   * @param string $item Item to play
+   */
   function play_slimserver($item) {
      $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . PATH_FULL);
      $player = "&player=" . urlencode($this->slimserverPlayer);
@@ -608,7 +727,7 @@ class MusicBrowser {
   }
   
   /**
-   * Redirect to current folder page.  This function calls exit().
+   * Redirect to current folder page.  Exits.
    */
   function reload_page() {
     $path = "";
@@ -625,6 +744,11 @@ class MusicBrowser {
     exit(0);
   }
 
+  /**
+   * GETs an URL.
+   * @param string $url The URL
+   * @return Resulting content
+   */
   function http_get($url) {
     if (!ini_get('allow_url_fopen')) {
       $this->add_message("'allow_url_fopen' in php.ini is set to false");
@@ -649,7 +773,10 @@ class MusicBrowser {
     $this->infoMessage .= "$msg<br>\n";
     $_SESSION['message'] = $this->infoMessage;
   }
-  
+
+  /**
+   * @return string Clears and returns the message stack
+   */
   function pop_messages() {
     $_SESSION['message'] = "";
     return $this->infoMessage;
@@ -661,7 +788,7 @@ class MusicBrowser {
   function resolve_path($rootPath) {
     if (empty($rootPath)) $this->directFileAccess = true;
     if (!empty($rootPath) && !is_dir($rootPath)) {
-      $this->fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
+      $this->show_fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
     }
     if (empty($rootPath)) {
        $rootPath = getcwd();
@@ -696,15 +823,22 @@ class MusicBrowser {
     define('PATH_RELATIVE', $relPath); # e.g. Covenant/Stalker.mp3
     define('PATH_FULL', $fullPath);    # e.g. /mnt/music/Covenant/Stalker.mp3
   }
-  
+
+  /**
+   * @return string Current url scheme
+   */
   function protocol() {
     if (isset($_SERVER["HTTPS"])) {
-      return "https://"; 
-    } else {
-      return "http://";
+        return "https://";
     }
+    return "http://";
   }
-  
+
+
+  /**
+   * Resolve the current URL into URL_ROOT, URL_RELATIVE and URL_FULL.
+   * @param string $rootUrl The input URL
+   */
   function resolve_url($rootUrl) {
 
     if (empty($rootUrl)) {
@@ -713,7 +847,7 @@ class MusicBrowser {
     } else {
       $root = trim($rootUrl, '/');
       if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $root)) {
-        $this->fatal_error("The \$config['url'] \"{$root}\" is invalid");
+        $this->show_fatal_error("The \$config['url'] \"{$root}\" is invalid");
       }
     } 
     $relative = $this->pathinfo_basename($_SERVER['SCRIPT_NAME']);
@@ -722,34 +856,58 @@ class MusicBrowser {
     define('URL_FULL', "$root/$relative"); # e.g. http://mysite.com/musicbrowser
   }
 
+  /**
+   * @param string $file A file path
+   * @return The last part of a path
+   */
   function pathinfo_basename($file) {
      return array_pop(explode("/", $file));
   }
-  
+
+  /**
+   * @param string $needle Needle(s) to search for (space separated AND search)
+   * @return array List of results
+   */
   function search($needle) {
+    $needles = split(" ", strtolower($needle));
     $handle = false;
-    if (!$handle = fopen($this->searchDB, 'r')) {
-        $error = "Cannot open file ({$this->searchDB})";
-    }
     $result = array();
+    if (filesize($this->searchDB) == 0 || !is_readable($this->searchDB)) {
+        $this->add_message("Empty or unreadable search database ({$this->searchDB})");
+        return $result;
+    }
+    $handle = fopen($this->searchDB, 'r');
     while (!feof($handle)) {
-        $buffer = fgets($handle, 4096);
-        if (strpos($buffer, $needle) !== false) {
-          $result[] = $buffer;
+        $buffer = fgets($handle, 2048);
+        $bufferLower = strtolower($buffer);
+        $found = true;
+        foreach ($needles as $needle) {
+          if (strpos($bufferLower, $needle) === false) {
+            $found = false;
+            break;
+          }
+        }
+        if ($found) {
+            $result[] = $buffer;
         }
     }
     fclose($handle);
     return $result;
   }
 
+  /**
+   * Rebuilds the search database.
+   * @param string $from Path to rebuild from
+   * @return string Status message
+   */
   function build_searchdb($from) {
     $handle = false;
     $message = false;
-    
+    $startTime = time();
     if (!$this->allowLocal) {
       $message = "Not authorized";      
     } elseif (!$handle = fopen($this->searchDB, 'w')) {
-      $message = "Cannot open file ({$this->searchDB})";
+      $message = "Unable to write to search database ({$this->searchDB})";
     } else {
       chdir($from);
       $dirs = array('.');  
@@ -770,7 +928,8 @@ class MusicBrowser {
           closedir($dh);      
         }    
       }
-      $message = "Search DB built successfully";
+      $seconds = time() - $startTime;
+      $message = "Search DB built successfully in $seconds seconds.";
     }
     fclose($handle);
     return $message; 
@@ -1032,6 +1191,37 @@ class StreamLib {
     $output .= "</channel></rss>\r\n";
     $this->stream_content($output, "$name.rss", "application/xml", "inline");
   }
+
+  /**
+   * @param array $entries Array of arrays with keys url, title, timestamp
+   * @param string $name Stream name
+   * @param string $link The link to this rss
+   * @param string $image Album cover (optional)
+   */
+  function playlist_xspf($entries, $name = "playlist", $link, $image = "", $charset = "iso-8859-1") {
+    $link = htmlspecialchars($link);
+    $name = Util::convert_to_utf8(htmlspecialchars($name), $charset);
+    $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+            . "<playlist version=\"1\" xmlns=\"http://xspf.org/ns/0/\">\r\n"
+            . "  <title>$name</title>\r\n"
+            . "  <trackList>\r\n";
+
+    foreach ($entries as $entry) {
+      $url = htmlspecialchars($entry['url']);
+      $title = Util::convert_to_utf8(htmlspecialchars($entry['title']), $charset);
+      $output .= "    <track>\r\n"
+               . "      <location>$url</location>\r\n"
+               . "      <title>$title</title>\r\n";
+ 	  if (!empty($image)) {
+ 		$output .= "      <image>$image</image>\r\n";
+ 	  }
+ 	  $output .= "    </track>\r\n";
+    }
+    $output .= "  </trackList>\r\n"
+             . "</playlist>\r\n";
+    $this->stream_content($output, "$name.xspf", "application/xspf+xml", "inline");
+  }
+
 
   /**
    * @param array $entries Array of arrays with keys url, title
