@@ -44,7 +44,7 @@ $config = array(
   'xbmcPath' => "",
 
   # Array of regular expression (regexp) matches for hosts that are allowed to use 
-  # server playback and slimserver playback, e.g.
+  # server playback and slimserver playback, and to rebuild the search db, e.g.
   #  'allowLocal' => array("/^10\.0\.0\./")
   # Leave as array() to disable.
   'allowLocal' => array(),
@@ -61,13 +61,13 @@ $config = array(
   'charset' => "utf-8",
 
   # Fetch and show cover images inside folders when listing folders?  
-  'folderCovers' => false,
+  'folderCovers' => true,
 
   # 'securePath' => false allows symlinks to folders outside the 'path' folder, but might 
   # be less secure
   'securePath' => true,    
   
-  # Location of the search db text file
+  # Location of the search db text file. Leave empty to disable search.
   'searchDB' => "/tmp/musicbrowser-searchdb.txt",
   
   # Set to true to display PHP errors and notices.  Should be set to false.

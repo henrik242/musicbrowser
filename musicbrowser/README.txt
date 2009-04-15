@@ -71,7 +71,7 @@ SqueezeCenter » Settings » Advanced » Security.
 Changelog
 ---------
 0.21-svn
-- ...
+- Small UI and code changes
 
 0.20 (2009-04-13)
 - Added search
