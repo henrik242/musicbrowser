@@ -34,15 +34,15 @@ define('VERSION', '0.21-svn');
 class MusicBrowser {
   
   var $columns = 5;
-  var $infoMessage = '';
   var $headingThreshold = 14;
   var $thumbSize = 100;
   var $allowLocal = false;
-  var $homeName, $streamLib, $fileTypes, $template, $charset, $searchDB;
-  var $serverPlayer, $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
+  var $homeName, $streamLib, $fileTypes, $template, $charset;
+  var $searchDB, $securePath, $serverPlayer;
+  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
-  var $directFileAccess = false;
-  
+  var $path, $url;
+
   /**
    * @param array $config Assosciative array with configuration
    */  
@@ -71,8 +71,6 @@ class MusicBrowser {
    * @param array $config
    */
   function resolve_config($config) {
-    $this->resolve_url($config['url']); // need to resolve url before path
-  
     foreach ($config as $key => $value) {
       switch ($key) {
         case 'url';
@@ -96,7 +94,8 @@ class MusicBrowser {
           break;
       }
     }
-    $this->resolve_path($config['path']);
+    $this->url = new Url($config['url']); // need to resolve url before path
+    $this->path = new Path($config['path'], $this->securePath);
     
     if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disablePlayMethod(SLIM);
     if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disablePlayMethod(SERVER);
@@ -130,6 +129,7 @@ class MusicBrowser {
    * Display requested page, or deliver ajax content.
    */
   function show_page() {
+
     if (isset($_GET['search'])) {
       $this->show_search(); // Exits
     }    
@@ -140,13 +140,13 @@ class MusicBrowser {
       $this->show_verify(); // Exits
     }
     
-    if ((is_dir(PATH_FULL) || is_file(PATH_FULL)) && isset($_GET['stream'])) {
+    if ((is_dir($this->path->full) || is_file($this->path->full)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
       $this->stream($_GET['stream'], @$_GET['shuffle']);
       exit(0);
-    } elseif (is_file(PATH_FULL)) {
+    } elseif (is_file($this->path->full)) {
       # If the path is a file, download it
-      $this->streamLib->stream_file_auto(PATH_FULL);
+      $this->streamLib->stream_file_auto($this->path->full);
       exit(0);
     } 
 
@@ -158,11 +158,11 @@ class MusicBrowser {
     }
     
     if (isset($_GET['message'])) {
-      $this->add_message($_GET['message']);
+      Log::log($_GET['message']);
     }
 
     $search = array("/%folder%/", "/%flash_player%/", "/%searchfield%/", "/%admin%/", "/%version%/");
-    $replace = array(addslashes(PATH_RELATIVE), $this->html_flashplayer(), $this->html_searchfield(), 
+    $replace = array(addslashes($this->path->relative), $this->html_flashplayer(), $this->html_searchfield(),
         $this->html_admin(), VERSION);
 
     $template = implode("", file($this->template));
@@ -174,7 +174,7 @@ class MusicBrowser {
    * Content for a page (JSON).  Exits.
    */
   function show_content() {
-      $items = $this->list_folder(PATH_FULL);
+      $items = $this->list_folder($this->path->full);
       $content = $this->html_folder($items);
 
       $result = array();
@@ -182,7 +182,7 @@ class MusicBrowser {
       $result['cover'] = $this->html_cover();
       $result['breadcrumb'] = $this->html_breadcrumb();
       $result['options'] = $this->html_options();
-      $result['error'] = $this->pop_messages();
+      $result['error'] = Log::pop();
       
       print $this->json_encode($result);
       exit(0);
@@ -241,9 +241,9 @@ class MusicBrowser {
     $content = "<ul class=searchresult>\n";
     foreach ($searchresult as $entry) {
       $entry = preg_replace("/[\r\n]/", "", $entry);
-      $item = new Item($entry, $this->charset, $this->directFileAccess, false);
+      $item = new Item($entry, $this->charset, false, $this->path, $this->url);
 
-      if (is_dir(PATH_ROOT . "/$entry")) {
+      if (is_dir($this->path->root . "/$entry")) {
         $content .= '<li>' . $item->dir_link() . '</li>\n';
       } else {
         $content .= '<li>' . $item->file_link() . '</li>\n';
@@ -254,7 +254,7 @@ class MusicBrowser {
     $result['numresults'] = count($searchresult);
     $result['breadcrumb'] = $this->html_linkedtitle() . ': search for "' . $needle . '"'
      . "<br> <a class=folder href=\"javascript:previousDir()\">[go back]</a>\n";
-    $result['error'] = $this->pop_messages();
+    $result['error'] = Log::pop();
     print $this->json_encode($result);
     exit(0);
   }
@@ -264,7 +264,8 @@ class MusicBrowser {
    */
   function show_builddb() {
       $result = array();
-      $result['error'] = $this->build_searchdb(PATH_ROOT);
+      $this->build_searchdb($this->path->root);
+      $result['error'] = Log::pop();
       print $this->json_encode($result);
       exit(0);
   }
@@ -274,8 +275,9 @@ class MusicBrowser {
    */
   function show_verify() {
       $result = array();
-      if (!empty($this->infoMessage)) {
-        $result['error'] = $this->pop_messages();
+      $msg = Log::pop();
+      if (!empty($msg)) {
+        $result['error'] = $msg;
       }
       print $this->json_encode($result);
       exit(0);
@@ -315,7 +317,6 @@ class MusicBrowser {
    * @return string Formatted HTML with folder content
    */
   function html_folder($items) {
-
     $output = "";
     if (count($items) > 0) {
       $groupList = $this->group_items($items);
@@ -363,7 +364,7 @@ class MusicBrowser {
     if (array_key_exists(STREAMTYPE, $select)) {
       $select[STREAMTYPE] = 'SELECTED';
     }
-    $pathEncoded = Util::path_encode(PATH_RELATIVE);
+    $pathEncoded = Util::path_encode($this->path->relative);
     $output = "<span class=feet>Play as <select name=streamtype onChange=\"setStreamtype('" . $pathEncoded . "', options[this.selectedIndex].value)\">";
     foreach ($select as $type => $checked) {
       switch ($type) {
@@ -399,11 +400,11 @@ class MusicBrowser {
     natcasesort($items);
     $group = array();
     foreach ($items as $plainItem) {
-        $item = new Item($plainItem, $this->charset, $this->directFileAccess, $this->folderCovers);
+        $item = new Item($plainItem, $this->charset, 
+          $this->folderCovers, $this->path, $this->url);
         $index = $item->sort_index();
         @ $group[" $index"][] = $item;
     }
-    
     $mergedItems = array();
     $from = "";
     $i = 0;
@@ -481,8 +482,8 @@ class MusicBrowser {
   /**
    * @return string Formatted HTML with cover image (if any)
    */
-  function html_cover($pathRelative = PATH_RELATIVE) {
-    $link = Util::cover_image($pathRelative, $this->directFileAccess);
+  function html_cover() {
+    $link = $this->path->cover_image();
     if (!empty($link)) {
       return "<a href=\"javascript:showCover('$link')\">"
            . "<img title=\"View enlarged cover\" alt=\"\" border=0 src=\"$link\" width={$this->thumbSize} "
@@ -499,7 +500,7 @@ class MusicBrowser {
    * @return string Formatted HTML with bread crumbs for folder
    */
   function html_breadcrumb() {
-    $path = PATH_RELATIVE;
+    $path = $this->path->relative;
     $parts = explode("/", trim($path, "/"));
     if ($parts[0] == '') {
       $parts = array();
@@ -544,7 +545,7 @@ class MusicBrowser {
    * Find all items in a folder recursively.
    */
   function folder_items($folder, $allItems) {
-    $fullPath = PATH_ROOT . "/$folder";
+    $fullPath = $this->path->root . "/$folder";
     $items = $this->list_folder($fullPath);
     foreach ($items as $item) {
       if (count($allItems) >= $this->maxPlaylistSize) {
@@ -564,31 +565,31 @@ class MusicBrowser {
    */
   function stream($type, $shuffle) {
     if ($type == SLIM && $this->allowLocal) {
-      $this->play_slimserver(PATH_RELATIVE);
+      $this->play_slimserver($this->path->relative);
       return;
     }
     
     if ($type == XBMC && $this->allowLocal) {
-      $this->play_xbmc(PATH_RELATIVE);
+      $this->play_xbmc($this->path->relative);
       return;
     }
     
-    $name = $this->pathinfo_basename(PATH_FULL);
+    $name = Util::pathinfo_basename($this->path->full);
     if (empty($name)) $name = "playlist";
     $items = array();
     
-    if (is_dir(PATH_FULL)) {
-      $items = $this->folder_items(PATH_RELATIVE, $items);
+    if (is_dir($this->path->full)) {
+      $items = $this->folder_items($this->path->relative, $items);
       if ($shuffle == 'true') {
         shuffle($items);
       } else {
         natcasesort($items);
       }
     } else {
-      $items[] = PATH_RELATIVE;
+      $items[] = $this->path->relative;
     }
     if (count($items) == 0) {
-       $this->add_message("No files to play in <b>$name</b>");
+       Log::log("No files to play in <b>$name</b>");
        return;
     }
     $entries = array();
@@ -604,11 +605,11 @@ class MusicBrowser {
 
     switch ($type) {
       case RSS:
-        $url = URL_FULL . "?path=" . Util::path_encode(PATH_RELATIVE);
-        $coverImage = Util::cover_image(PATH_RELATIVE, $this->directFileAccess);
+        $url = $this->url->full . "?path=" . Util::path_encode($this->path->relative);
+        $coverImage = $this->path->cover_image();
         $image = "";
         if (!empty($coverImage)) {
-          $image = URL_ROOT . "/$coverImage";
+          $image = $this->url->root . "/$coverImage";
         }
         $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
         break;
@@ -619,11 +620,11 @@ class MusicBrowser {
         $this->streamLib->playlist_pls($entries, $name);
         break;
       case XSPF:
- 		$url = URL_FULL . "?path=" . Util::path_encode(PATH_RELATIVE);
- 		$coverImage = Util::cover_image(PATH_RELATIVE, $this->directFileAccess);
- 		$image = "";
- 		if (!empty($coverImage)) {
- 		  $image = URL_ROOT . "/$coverImage";
+        $url = $this->url->full . "?path=" . Util::path_encode($this->path->relative);
+        $coverImage = $this->path->cover_image();
+        $image = "";
+        if (!empty($coverImage)) {
+          $image = $this->url->root . "/$coverImage";
         }
         $this->streamLib->playlist_xspf($entries, $name, $url, $image, $this->charset);
         break;
@@ -646,17 +647,17 @@ class MusicBrowser {
     $name = preg_replace("|\.[a-z0-9]{1,4}$|i", "", $item);
     $parts = array_reverse(preg_split("|/|", $name));
     $name = implode(" - ", $parts);
-    if ($this->directFileAccess) {
-      $url = URL_ROOT . "/" . Util::path_encode($item, false);
+    if ($this->path->directFileAccess) {
+      $url = $this->url->root . "/" . Util::path_encode($item, false);
     } else {
-      $url = URL_FULL . "?path=" . Util::path_encode($item);
+      $url = $this->url->full . "?path=" . Util::path_encode($item);
     }
     $entry = array('title' => $name, 'url' => $url);
     if ($withTimestamp) {
-      $entry['timestamp'] = filectime(PATH_ROOT . "/$item");
+      $entry['timestamp'] = filectime($this->path->root . "/$item");
     }
     if ($withLength) {
-      $entry['length'] = filesize(PATH_ROOT . "/$item");
+      $entry['length'] = filesize($this->path->root . "/$item");
     }
     return $entry;
   }
@@ -683,9 +684,9 @@ class MusicBrowser {
     $parameter = $this->xbmcPath . "/" . Util::path_encode($item, false, true) . ";0;[music];1";
     $data = $this->invoke_xbmc("AddToPlayList", $parameter);
     if (preg_match("/Error/", $data) == 1) {
-      $this->add_message("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
+      Log::log("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
     } else {
-      $this->add_message("Playing requested file(s) on Xbmc");
+      Log::log("Playing requested file(s) on Xbmc");
       $data = $this->invoke_xbmc("PlaylistNext");
     }
     $data = $this->invoke_xbmc("GetPlayListContents", "0");
@@ -699,13 +700,13 @@ class MusicBrowser {
   function play_server($items) {
     $args = "";
     foreach ($items as $item) {
-      $args .= "\"" . PATH_ROOT . "/$item\" ";
+      $args .= "\"" . $this->path->root . "/$item\" ";
     }
     system("{$this->serverPlayer} $args >/dev/null 2>/dev/null &", $ret);
     if ($ret === 0) {
-      $this->add_message("Playing requested file(s) on server");
+      Log::log("Playing requested file(s) on server");
     } else {
-      $this->add_message("Error playing file(s) on server.  Check the error log.");
+      Log::log("Error playing file(s) on server.  Check the error log.");
     }
     $this->reload_page(); //exits
   }
@@ -715,14 +716,14 @@ class MusicBrowser {
    * @param string $item Item to play
    */
   function play_slimserver($item) {
-     $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . PATH_FULL);
+     $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . $this->path->full);
      $player = "&player=" . urlencode($this->slimserverPlayer);
      $url = $this->slimserverUrl . $action . $player;
      $data = $this->http_get($url);
      if (strlen($data) == 0) {
-       $this->add_message("Error reaching slimserver");
+       Log::log("Error reaching slimserver");
      } else {
-       $this->add_message("Playing requested file(s) on Squeezebox");
+       Log::log("Playing requested file(s) on Squeezebox");
      }
      $this->reload_page(); //exits
   }
@@ -733,14 +734,13 @@ class MusicBrowser {
   function reload_page() {
     $path = "";
     if (defined('PATH_RELATIVE')) {
-      if (is_file(PATH_FULL)) {
+      if (is_file($this->path->full)) {
         $path = preg_replace("|/[^/]+$|", "", PATH_RELATIVE);
       } else {
         $path = PATH_RELATIVE;
       }
     }
-    $url = URL_FULL . "?path=" . Util::path_encode($path);
-    $_SESSION['message'] = $this->infoMessage;
+    $url = $this->url->full . "?path=" . Util::path_encode($path);
     header("Location: $url");
     exit(0);
   }
@@ -752,11 +752,11 @@ class MusicBrowser {
    */
   function http_get($url) {
     if (!ini_get('allow_url_fopen')) {
-      $this->add_message("'allow_url_fopen' in php.ini is set to false");
+      Log::log("'allow_url_fopen' in php.ini is set to false");
       return;
     }
     if (!($fp = fopen($url, "r"))) {
-      $this->add_message("Could not open URL " . $url);
+      Log::log("Could not open URL " . $url);
       return;
     }
     $data = "";
@@ -767,103 +767,6 @@ class MusicBrowser {
     return $data;
   }
 
-  /**
-   * Add message to be displayed on top.
-   */
-  function add_message($msg) {
-    $this->infoMessage .= "$msg<br>\n";
-    $_SESSION['message'] = $this->infoMessage;
-  }
-
-  /**
-   * @return string Clears and returns the message stack
-   */
-  function pop_messages() {
-    $_SESSION['message'] = "";
-    return $this->infoMessage;
-  }
-
-  /**
-   * Try to resolve a safe path.
-   */
-  function resolve_path($rootPath) {
-    if (empty($rootPath)) $this->directFileAccess = true;
-    if (!empty($rootPath) && !is_dir($rootPath)) {
-      $this->show_fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
-    }
-    if (empty($rootPath)) {
-       $rootPath = getcwd();
-    }
-    
-    $relPath = "";
-    if (isset($_GET['path'])) {
-      $getPath = stripslashes($_GET['path']);
-      # Remove " (x22) and \ (x5c) and everything before ascii x20
-      $getPath = preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $getPath);
-      $getPath = preg_replace(array("|%5c|", "|/\.\./|", "|/\.\.$|", "|^[/]*\.\.|"), 
-                              array("", "", "", ""), $getPath);
-                                    
-      if (is_readable("$rootPath/$getPath")) {
-        $relPath = $getPath;
-      } else {
-        $this->add_message("The path <i>$getPath</i> is not readable.");
-        //$this->reload_page(); // exits
-      }
-    }
-    $fullPath = "$rootPath/$relPath";
-    # Avoid funny paths
-    $realFullPath = realpath($fullPath);
-    $realRootPath = realpath($rootPath);
-    
-    if (($this->securePath && $realRootPath != substr($realFullPath, 0, strlen($realRootPath)))
-         || !(is_dir($fullPath) || is_file($fullPath))) {
-       $relPath = "";
-       $fullPath = $rootPath;
-    }
-    define('PATH_ROOT', $rootPath);    # e.g. /mnt/music
-    define('PATH_RELATIVE', $relPath); # e.g. Covenant/Stalker.mp3
-    define('PATH_FULL', $fullPath);    # e.g. /mnt/music/Covenant/Stalker.mp3
-  }
-
-  /**
-   * @return string Current url scheme
-   */
-  function protocol() {
-    if (isset($_SERVER["HTTPS"])) {
-        return "https://";
-    }
-    return "http://";
-  }
-
-
-  /**
-   * Resolve the current URL into URL_ROOT, URL_RELATIVE and URL_FULL.
-   * @param string $rootUrl The input URL
-   */
-  function resolve_url($rootUrl) {
-
-    if (empty($rootUrl)) {
-      $folder = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
-      $root = $this->protocol() . $_SERVER['HTTP_HOST'] . $folder;
-    } else {
-      $root = trim($rootUrl, '/');
-      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $root)) {
-        $this->show_fatal_error("The \$config['url'] \"{$root}\" is invalid");
-      }
-    } 
-    $relative = $this->pathinfo_basename($_SERVER['SCRIPT_NAME']);
-    define('URL_ROOT', $root);             # e.g. http://mysite.com
-    define('URL_RELATIVE', $relative);     # e.g. musicbrowser
-    define('URL_FULL', "$root/$relative"); # e.g. http://mysite.com/musicbrowser
-  }
-
-  /**
-   * @param string $file A file path
-   * @return The last part of a path
-   */
-  function pathinfo_basename($file) {
-     return array_pop(explode("/", $file));
-  }
 
   /**
    * @param string $needle Needle(s) to search for (space separated AND search)
@@ -874,7 +777,7 @@ class MusicBrowser {
     $handle = false;
     $result = array();
     if (filesize($this->searchDB) == 0 || !is_readable($this->searchDB)) {
-        $this->add_message("Empty or unreadable search database ({$this->searchDB})");
+        Log::log("Empty or unreadable search database ({$this->searchDB})");
         return $result;
     }
     $handle = fopen($this->searchDB, 'r');
@@ -906,34 +809,160 @@ class MusicBrowser {
     $message = false;
     $startTime = time();
     if (!$this->allowLocal) {
-      $message = "Not authorized";      
+      Log::log("Not authorized");
     } elseif (!$handle = fopen($this->searchDB, 'w')) {
-      $message = "Unable to write to search database ({$this->searchDB})";
+      Log::log("Unable to write to search database ({$this->searchDB})");
     } else {
       chdir($from);
-      $dirs = array('.');  
-      while (NULL !== ($dir = array_pop($dirs))) {  
+      $dirs = array('.');
+      while (NULL !== ($dir = array_pop($dirs))) {
         if ($dh = opendir($dir)) {
-          while (false !== ($entry = readdir($dh))) {      
-            if ($entry == '.' || $entry == '..') continue;        
+          while (false !== ($entry = readdir($dh))) {
+            if ($entry == '.' || $entry == '..') continue;
             
             $path = "$dir/$entry";
             if (is_file($path) && !$this->valid_suffix($entry)) continue;
-            
+
             if (fwrite($handle, substr("$path\n",2)) === FALSE) {
-                $message = "Cannot write \"$path\" to file ({$this->searchDB})";
+                Log::log("Cannot write \"$path\" to file ({$this->searchDB})");
                 break 2;
             }
-            if (is_dir($path)) $dirs[] = $path;        
-          }      
-          closedir($dh);      
+            if (is_dir($path)) $dirs[] = $path;
+          }
+          closedir($dh);
         }    
       }
       $seconds = time() - $startTime;
-      $message = "Search DB built successfully in $seconds seconds.";
+      Log::log("Search DB built successfully in $seconds seconds.");
     }
     fclose($handle);
-    return $message; 
+  }
+
+}
+
+class Log {
+  function log($msg) {
+    if (!isset($_SESSION['message'])) {
+      $_SESSION['message'] = $msg;
+    } else {
+      $_SESSION['message'] .= "$msg<br>";
+    }
+  }
+
+  function pop() {
+    $msg = $_SESSION['message'];
+    unset($_SESSION['message']);
+    return $msg;
+  }
+}
+
+class Path {
+
+  var $root;     # e.g. /mnt/music
+  var $relative; # e.g. Covenant/Stalker.mp3
+  var $full;     # e.g. /mnt/music/Covenant/Stalker.mp3
+  var $directFileAccess = false;
+  
+  /**
+   * Try to resolve a safe path.
+   */
+  function Path($rootPath, $securePath) {
+    if (empty($rootPath)) $this->directFileAccess = true;
+    
+    if (!empty($rootPath) && !is_dir($rootPath)) {
+      //$this->show_fatal_error("The \$config['path'] \"$rootPath\" isn't readable");
+      print "The \$config['path'] \"$rootPath\" isn't readable";//FIXME
+      exit(0);
+    }
+    if (empty($rootPath)) {
+       $rootPath = getcwd();
+    }
+    
+    $relPath = "";
+    if (isset($_GET['path'])) {
+      $getPath = stripslashes($_GET['path']);
+      # Remove " (x22) and \ (x5c) and everything before ascii x20
+      $getPath = preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $getPath);
+      $getPath = preg_replace(array("|%5c|", "|/\.\./|", "|/\.\.$|", "|^[/]*\.\.|"), 
+                              array("", "", "", ""), $getPath);
+                                    
+      if (is_readable("$rootPath/$getPath")) {
+        $relPath = $getPath;
+      } else {
+        Log::log("The path <i>$getPath</i> is not readable.");
+      }
+    }
+    $fullPath = "$rootPath/$relPath";
+    # Avoid funny paths
+    $realFullPath = realpath($fullPath);
+    $realRootPath = realpath($rootPath);
+    
+    if (($securePath && $realRootPath != substr($realFullPath, 0, strlen($realRootPath)))
+         || !(is_dir($fullPath) || is_file($fullPath))) {
+       $relPath = "";
+       $fullPath = $rootPath;
+    }
+    $this->root = $rootPath;    # e.g. /mnt/music
+    $this->relative = $relPath; # e.g. Covenant/Stalker.mp3
+    $this->full = $fullPath;    # e.g. /mnt/music/Covenant/Stalker.mp3
+  }
+
+  function cover_image($addedPath = null) {
+    $pathRelative = $this->relative;
+    if ($addedPath) {
+      $pathRelative .= "/$addedPath";
+    }
+    $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
+                  "folder.gif", "Folder.gif");
+    foreach ($covers as $cover) {
+      if (is_readable($this->root . "/$pathRelative/$cover")) {
+        $coverPath = Util::path_encode("$pathRelative/$cover", false);
+        if ($this->directFileAccess) {
+          return $coverPath;
+        } else {
+          return $pathRelative . "?path=" . $coverPath;
+        }
+      }
+    }
+    return "";
+  }
+
+}
+
+class Url {
+
+  var $root;     # e.g. http://mysite.com
+  var $relative; # e.g. musicbrowser
+  var $full;     # e.g. http://mysite.com/musicbrowser
+  
+  /**
+   * Resolve the current URL into $root, $relative and $full.
+   * @param string $rootUrl The input URL
+   */
+  function Url($rootUrl) {
+    if (empty($rootUrl)) {
+      $folder = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
+      $this->root = self::protocol() . $_SERVER['HTTP_HOST'] . $folder;
+    } else {
+      $this->root = trim($rootUrl, '/');
+      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $root)) {
+        //$this->show_fatal_error("The \$config['url'] \"{$root}\" is invalid");
+        print "The \$config['url'] \"{$root}\" is invalid"; //FIXME
+        exit(0);
+      }
+    }
+    $this->relative = Util::pathinfo_basename($_SERVER['SCRIPT_NAME']);
+    $this->full = $this->root . "/" . $this->relative;
+  }
+
+  /**
+   * @return string Current url scheme
+   */
+  function protocol() {
+    if (isset($_SERVER["HTTPS"])) {
+        return "https://";
+    }
+    return "http://";
   }
 
 }
@@ -945,19 +974,21 @@ class Item {
   var $item;
   var $urlPath;
   var $charset;
-  var $directFileAccess;
   var $folderCovers;
-  
-  function Item($item, $charset, $directFileAccess, $folderCovers) {
+  var $path;
+  var $url;
+
+  function Item($item, $charset, $folderCovers, $path, $url) {
     $this->item = $item;  
     $this->charset = $charset;
-    $this->directFileAccess = $directFileAccess;
     $this->folderCovers = $folderCovers;
+    $this->path = $path;
+    $this->url = $url;
   } 
   
   function url_path() {
     if (empty($this->urlPath)) {
-      $this->urlPath = Util::path_encode(PATH_RELATIVE . "/" . $this->item);    
+      $this->urlPath = Util::path_encode($this->path->relative . "/" . $this->item);
     }
     return $this->urlPath;
   }
@@ -980,7 +1011,7 @@ class Item {
   function show_link() {
     if (empty($this->item)) {
       return "&nbsp;";
-    } elseif (is_dir(PATH_FULL . "/" . $this->item)) {
+    } elseif (is_dir($this->path->full . "/" . $this->item)) {
       return $this->dir_link();
     } else {
       return $this->file_link();
@@ -988,7 +1019,7 @@ class Item {
   }
   
   function dir_link() {
-    $image = $this->show_folder_cover(PATH_RELATIVE . "/" . $this->item);
+    $image = $this->show_folder_cover($this->item);
     return "$image<a title=\"Play files in this folder\" href=\"" . Util::play_url($this->url_path()) 
       . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
       . "<a class=folder href=\"javascript:changeDir('" . $this->js_url_path() . "')\">" 
@@ -996,25 +1027,25 @@ class Item {
   }
   
   function file_link() {
-    return "<a href=\"" . $this->direct_link(PATH_RELATIVE . "/" . $this->item) . "\">"
+    return "<a href=\"" . $this->direct_link($this->path->relative . "/" . $this->item) . "\">"
       . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
       . "<a class=file title=\"Play this song\" href=\"" . Util::play_url($this->url_path()) 
       . "\">" . $this->display_item() . "</a>\n";
   }
   
   function direct_link($urlPath) {
-     if ($this->directFileAccess) {
+     if ($this->path->directFileAccess) {
        return Util::path_encode($urlPath, false);
      } 
-     return URL_RELATIVE . "?path=" . Util::path_encode($urlPath);
+     return $this->url->relative . "?path=" . Util::path_encode($urlPath);
   }
   
-  function show_folder_cover($pathRelative) {
+  function show_folder_cover($addedPath) {
     $image = "";
     if ($this->folderCovers) {
-      $coverImage = Util::cover_image($pathRelative, $this->directFileAccess);
+      $coverImage = $this->path->cover_image($addedPath);
       if (!empty($coverImage)) {
-        $jsUrlPath = Util::js_url(Util::path_encode($pathRelative));
+        $jsUrlPath = Util::js_url(Util::path_encode($this->path->relative . "/$addedPath"));
         $image = "<a href=\"javascript:changeDir('" . $this->js_url_path() 
                . "')\"><img src=\"$coverImage\" border=0 width=100 height=100 alt=\"\"></a><br>";
       }
@@ -1053,23 +1084,7 @@ class Util {
        $urlPath = Util::js_url($urlPath);
        return "javascript:jwPlay('$urlPath', " . SHUFFLE . ")";
     }
-    return URL_RELATIVE . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
-  }
-  
-  function cover_image($pathRelative, $directFileAccess) {
-    $covers = array("cover.jpg", "Cover.jpg", "folder.jpg", "Folder.jpg", "cover.gif", "Cover.gif",
-                  "folder.gif", "Folder.gif");
-    foreach ($covers as $cover) {
-      if (is_readable(PATH_ROOT . "/$pathRelative/$cover")) {
-        $pathEncoded = Util::path_encode("$pathRelative/$cover", false);
-        if ($directFileAccess) {
-          return $pathEncoded;
-        } else {
-          return URL_RELATIVE . "?path=" . $pathEncoded;
-        }
-      }
-    }
-    return "";
+    return $this->url->relative . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
   }
   
   function word_wrap($item) {
@@ -1077,7 +1092,7 @@ class Util {
       $item = preg_replace("/_/", " ", $item);
       $pos = strpos($item, " ");
       if ($pos > 40 || !$pos) {
-        $item = substr($item, 0, 30) . " " . Util::word_wrap(substr($item, 30));
+        $item = substr($item, 0, 30) . " " . self::word_wrap(substr($item, 30));
       }
     }
     return $item;
@@ -1094,6 +1109,14 @@ class Util {
       $entry = utf8_encode($entry);
     }
     return $entry;
+  }
+
+  /**
+   * @param string $file A file path
+   * @return The last part of a path
+   */
+  function pathinfo_basename($file) {
+     return array_pop(explode("/", $file));
   }
 }
 
