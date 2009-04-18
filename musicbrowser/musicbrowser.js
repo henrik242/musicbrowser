@@ -48,8 +48,7 @@ function previousDir() {
  */
 function changeDir(path) {
   updateDirectory(path);
-  currentHash = 'p=' + decodeURIComponent(path);
-  window.location.hash = '#' + currentHash;
+  updateHash('p', path);
 }
 
 /*
@@ -155,8 +154,8 @@ function search(needle) {
     showBox('<div class=error>Search term must be longer than 2 characters</div>', 3000);
     return;
   }
-  currentHash = 's=' + needle;
-  window.location.hash = '#' + currentHash;
+  updateHash('s', needle);
+
   var startTime = new Date().getSeconds();
   showBox('<div class=error>Searching...</div>');
   var http = httpGet(prefix + "&search=" + needle);
@@ -183,6 +182,16 @@ function search(needle) {
     }
   }
   http.send(null);
+}
+
+function updateHash(func, content) {
+  if (content) {
+    currentHash = func + '=' + decodeURIComponent(content);
+    window.location.hash = '#' + currentHash;
+  } else {
+    currentHash = '';
+    window.location.hash = '';
+  }
 }
 
 /*
