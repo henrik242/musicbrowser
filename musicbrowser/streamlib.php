@@ -34,11 +34,11 @@ define('VERSION', '0.21-svn');
 class MusicBrowser {
   
   var $columns = 5;
-  var $headingThreshold = 14;
+  var $headingThreshold = 24;
   var $thumbSize = 100;
   var $allowLocal = false;
   var $homeName, $streamLib, $fileTypes, $template, $charset;
-  var $searchDB, $securePath, $serverPlayer;
+  var $searchDB, $securePath, $serverPlayer, $hideItems;
   var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
   var $path, $url;
@@ -74,9 +74,12 @@ class MusicBrowser {
     foreach ($config as $key => $value) {
       switch ($key) {
         case 'url';
-        case 'path';
+          $this->url = new Url($config['url']);
           break;
-        case "allowLocal":
+        case 'path';
+          $this->path = new Path($config['path'], $this->securePath);
+          break;
+        case 'allowLocal':
           if (count($value) == 0) {
             $this->allowLocal = true;
           } else {
@@ -94,8 +97,6 @@ class MusicBrowser {
           break;
       }
     }
-    $this->url = new Url($config['url']); // need to resolve url before path
-    $this->path = new Path($config['path'], $this->securePath);
     
     if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disablePlayMethod(SLIM);
     if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disablePlayMethod(SERVER);
@@ -131,15 +132,15 @@ class MusicBrowser {
   function show_page() {
 
     if (isset($_GET['search'])) {
-      $this->show_search(); // Exits
+      $this->show_search($this->url, $this->path, $this->charset); // Exits
     }    
     if (isset($_GET['builddb'])) {
-      $this->show_builddb(); // Exits
+      $this->show_builddb($this->path->root); // Exits
     }    
     if (isset($_GET['verify'])) {
       $this->show_verify(); // Exits
     }
-    
+
     if ((is_dir($this->path->full) || is_file($this->path->full)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
       $this->stream($_GET['stream'], @$_GET['shuffle']);
@@ -154,7 +155,7 @@ class MusicBrowser {
     $this->set_stream_type();
 
     if (isset($_GET['content'])) {
-      $this->show_content(); // Exits
+      $this->show_content($this->path->full); // Exits
     }
     
     if (isset($_GET['message'])) {
@@ -173,9 +174,12 @@ class MusicBrowser {
   /**
    * Content for a page (JSON).  Exits.
    */
-  function show_content() {
-      $items = $this->list_folder($this->path->full);
-      $content = $this->html_folder($items);
+  function show_content($fullPath) {
+      $entries = $this->list_folder($fullPath, $this->hideItems);
+      $byInitial = $this->items_by_initial($entries,
+          $this->url, $this->path, $this->charset, $this->folderCovers);
+      $groupedItems = $this->group_items($byInitial, $this->headingThreshold);
+      $content = $this->html_folder($groupedItems);
 
       $result = array();
       $result['content'] = '<table width="100%">' . $content . "</table>";
@@ -232,18 +236,22 @@ class MusicBrowser {
 
   /**
    * Search results (JSON).  Exits.
+   *
+   * @param Url url Url Object
+   * @param Path path Path Object
+   * @param string charset Character set
    */
-  function show_search() {
-    $needle = preg_replace("/[^a-zA-Z0-9 +-]/", "", $_GET['search']);
+  function show_search($url, $path, $charset) {
+    $needle = Util::strip($_GET['search']);
     $this->init_shuffle_and_streamtype();
     $searchresult = $this->search($needle);
 
     $content = "<ul class=searchresult>\n";
     foreach ($searchresult as $entry) {
       $entry = preg_replace("/[\r\n]/", "", $entry);
-      $item = new Item($entry, $this->charset, false, $this->path, $this->url);
+      $item = new Item($entry, $charset, false, $path, $url);
 
-      if (is_dir($this->path->root . "/$entry")) {
+      if (is_dir($path->root . "/$entry")) {
         $content .= '<li>' . $item->dir_link() . '</li>\n';
       } else {
         $content .= '<li>' . $item->file_link() . '</li>\n';
@@ -262,9 +270,9 @@ class MusicBrowser {
   /**
    * Rebuilds search database (JSON). Exits.
    */
-  function show_builddb() {
+  function show_builddb($rootPath) {
       $result = array();
-      $this->build_searchdb($this->path->root);
+      $this->build_searchdb($rootPath);
       $result['error'] = Log::pop();
       print $this->json_encode($result);
       exit(0);
@@ -316,14 +324,12 @@ class MusicBrowser {
    *
    * @return string Formatted HTML with folder content
    */
-  function html_folder($items) {
+  function html_folder($groupedItems) {
     $output = "";
-    if (count($items) > 0) {
-      $groupList = $this->group_items($items);
-      
-      foreach ($groupList as $first => $group) {
+    if (count($groupedItems) > 0) {
+      foreach ($groupedItems as $first => $group) {
         $entry = "";
-        if (count($groupList) > 1) {
+        if (count($groupedItems) > 1) {
           $entry .= "<tr><th colspan={$this->columns}>$first</th></tr>\n";
         }
         $rows = ceil(count($group) / $this->columns);
@@ -393,29 +399,45 @@ class MusicBrowser {
   }
 
   /**
-   * Group $items by the first letter, with a minimum amount in each group.
-   * @see $this->headingThreshold
+   * @param array $entries array of entries
+   * @param Url $url Url object
+   * @param Path $path Path object
+   * @param string $charset Character set
+   * @param boolean $folderCovers Folder covers enabled
+   * @return array Items grouped by initial ([initial][Item arrays])
    */
-  function group_items($items) {
-    natcasesort($items);
+  function items_by_initial($entries, $url, $path, $charset, $folderCovers) {
+    natcasesort($entries);
     $group = array();
-    foreach ($items as $plainItem) {
-        $item = new Item($plainItem, $this->charset, 
-          $this->folderCovers, $this->path, $this->url);
-        $index = $item->sort_index();
-        @ $group[" $index"][] = $item;
+    foreach ($entries as $plainItem) {
+        $item = new Item($plainItem, $charset, $folderCovers, $path, $url);
+        $index = " " . $item->sort_index();
+        if (!isset($group[$index])) {
+          $group[$index] = array();
+        }
+        $group[$index][] = $item;
     }
-    $mergedItems = array();
+    ksort($group);
+    return $group;
+  }
+
+  /**
+   * Group $items by the first letter, with a minimum amount in each group.
+   * @param array $itemsByInitial Items grouped by initial
+   * @param integer $headingThreshold Max number of items in each group
+   * @return array Items grouped in suitable groups ([from-toinitial][items])
+   */
+  function group_items($itemsByInitial, $headingThreshold) {
     $from = "";
     $i = 0;
-    ksort($group);
-    foreach ($group as $index => $items) {
-      $mergedItems = array_merge($mergedItems, $items);
-      if (count($mergedItems) >= $this->headingThreshold || (count($group) -1) == $i) {
+    $mergedItems = array();
+    foreach ($itemsByInitial as $index => $itemGroup) {
+      $mergedItems = array_merge($mergedItems, $itemGroup);
+      if (count($mergedItems) >= $headingThreshold || (count($itemsByInitial) -1) == $i) {
         if ($from != "") {
           $index = "$from &ndash; $index"; 
         }
-        $groupList["$index"] = $mergedItems;
+        $groupList[$index] = $mergedItems;
         $mergedItems = array();
         $from = "";
       } elseif ($from == "") {
@@ -430,11 +452,11 @@ class MusicBrowser {
    * List folder content.
    * @return array Array with all allowed file and folder names
    */
-  function list_folder($path) {
+  function list_folder($path, $hideItems) {
     $folderHandle = dir($path);
     $items = array();
     while (false !== ($item = $folderHandle->read())) {
-      foreach ($this->hideItems as $hideItem) {
+      foreach ($hideItems as $hideItem) {
         if (preg_match($hideItem, $item)) continue 2; // to while loop
       }
       $fullPath = "$path/$item";
@@ -546,7 +568,7 @@ class MusicBrowser {
    */
   function folder_items($folder, $allItems) {
     $fullPath = $this->path->root . "/$folder";
-    $items = $this->list_folder($fullPath);
+    $items = $this->list_folder($fullPath, $this->hideItems);
     foreach ($items as $item) {
       if (count($allItems) >= $this->maxPlaylistSize) {
         return $allItems;
@@ -783,10 +805,9 @@ class MusicBrowser {
     $handle = fopen($this->searchDB, 'r');
     while (!feof($handle)) {
         $buffer = fgets($handle, 2048);
-        $bufferLower = strtolower($buffer);
         $found = true;
         foreach ($needles as $needle) {
-          if (strpos($bufferLower, $needle) === false) {
+          if (stristr($buffer, $needle) === false) {
             $found = false;
             break;
           }
@@ -823,7 +844,7 @@ class MusicBrowser {
             $path = "$dir/$entry";
             if (is_file($path) && !$this->valid_suffix($entry)) continue;
 
-            if (fwrite($handle, substr("$path\n",2)) === FALSE) {
+            if (fwrite($handle, substr("$path\n", 2)) === FALSE) {
                 Log::log("Cannot write \"$path\" to file ({$this->searchDB})");
                 break 2;
             }
@@ -845,7 +866,7 @@ class Log {
     if (!isset($_SESSION['message'])) {
       $_SESSION['message'] = $msg;
     } else {
-      $_SESSION['message'] .= "$msg<br>";
+      $_SESSION['message'] .= "<br>$msg";
     }
   }
 
@@ -882,7 +903,7 @@ class Path {
     if (isset($_GET['path'])) {
       $getPath = stripslashes($_GET['path']);
       # Remove " (x22) and \ (x5c) and everything before ascii x20
-      $getPath = preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $getPath);
+      $getPath = Util::strip($getPath);
       $getPath = preg_replace(array("|%5c|", "|/\.\./|", "|/\.\.$|", "|^[/]*\.\.|"), 
                               array("", "", "", ""), $getPath);
                                     
@@ -920,7 +941,7 @@ class Path {
         if ($this->directFileAccess) {
           return $coverPath;
         } else {
-          return $pathRelative . "?path=" . $coverPath;
+          return "index.php?path=" . $coverPath;
         }
       }
     }
@@ -995,7 +1016,8 @@ class Item {
   
   function sort_index() {
     //return date("Y-m-d", filectime(PATH_FULL . "/" . $this->item));
-    return strtoupper($this->item{0});
+    return strtoupper(mb_substr($this->item, 0, 1, $this->charset))
+        . strtolower(mb_substr($this->item, 1, 1, $this->charset));
   }
   
   function js_url_path() {
@@ -1003,7 +1025,7 @@ class Item {
   }
   
   function display_item() {
-    $displayItem = Util::word_wrap($this->item);
+    $displayItem = Util::word_wrap($this->item, $this->charset);
     $displayItem = Util::convert_to_utf8($displayItem, $this->charset);
     return $displayItem;
   }
@@ -1020,17 +1042,23 @@ class Item {
   
   function dir_link() {
     $image = $this->show_folder_cover($this->item);
-    return "$image<a title=\"Play files in this folder\" href=\"" . Util::play_url($this->url_path()) 
-      . "\"><img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
-      . "<a class=folder href=\"javascript:changeDir('" . $this->js_url_path() . "')\">" 
-      . $this->display_item() ."</a>\n";
+    $link = Util::play_url($this->url_path());
+    $jsurl = $this->js_url_path();
+    $item = $this->display_item();
+    
+    return "$image<a title=\"Play files in this folder\" href=\"$link\">"
+      . "<img border=0 alt=\"|&gt; \" src=\"play.gif\"></a>\n"
+      . "<a class=folder href=\"javascript:changeDir('$jsurl')\">$item</a>\n";
   }
   
   function file_link() {
-    return "<a href=\"" . $this->direct_link($this->path->relative . "/" . $this->item) . "\">"
+    $download = $this->direct_link($this->path->relative . "/" . $this->item);
+    $link = Util::play_url($this->url_path());
+    $item = $this->display_item();
+    
+    return "<a href=\"$download\">"
       . "<img src=\"download.gif\" border=0 title=\"Download this song\" alt=\"[Download]\"></a>\n"
-      . "<a class=file title=\"Play this song\" href=\"" . Util::play_url($this->url_path()) 
-      . "\">" . $this->display_item() . "</a>\n";
+      . "<a class=file title=\"Play this song\" href=\"$link\">$item</a>\n";
   }
   
   function direct_link($urlPath) {
@@ -1084,16 +1112,22 @@ class Util {
        $urlPath = Util::js_url($urlPath);
        return "javascript:jwPlay('$urlPath', " . SHUFFLE . ")";
     }
-    return $this->url->relative . "?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
+    return "index.php?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
   }
-  
-  function word_wrap($item) {
+
+  function strip($str) {
+    return preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $str);
+  }
+
+  function word_wrap($item, $charset) {
     if (strlen($item) > 40) {
       $item = preg_replace("/_/", " ", $item);
       $pos = strpos($item, " ");
-      if ($pos > 40 || !$pos) {
-        $item = substr($item, 0, 30) . " " . self::word_wrap(substr($item, 30));
+      if ($pos > 40 || $pos == 0) {
+        $pos = 30;
       }
+      $item = mb_substr($item, 0, $pos, $charset) . " "
+            . self::word_wrap(mb_substr($item, $pos, mb_strlen($item), $charset), $charset);
     }
     return $item;
   }
