@@ -12,7 +12,7 @@ document.onkeydown = hotkey;
 
 window.onload = function() {
   pollHash();
-  setInterval(pollHash, 1000); 
+  setInterval(pollHash, 1000);
 }
 
 /*
@@ -23,6 +23,12 @@ function pollHash() {
   if (locationHash == currentHash) {
     return; // Nothing's changed since last polled. 
   }
+
+  // Firefox and Safari don't agree on hash encoding
+  if (decodeURIComponent(currentHash) == locationHash) {
+    return;
+  }
+  
   currentHash = locationHash;
   switch (currentHash.substr(0,1)) {
       case 'p':
@@ -58,7 +64,6 @@ function updateDirectory(path) {
   document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
   currentFolder = path;
   fetchContent(path.replace('&', '%26'));
-  document.title = path.replace(/\+/g, ' ');
   document.getElementById('podcast').href =  prefix + path + '&stream=rss';
   document.getElementById('podcast').title = prefix + path.replace(/\+/g, ' ') + ' podcast';
   document.getElementById('podcast').innerHTML = 'podcast';
@@ -90,6 +95,7 @@ function fetchContent(path) {
       if (result.error != '') {
         showBox('<div class=error>' + result.error + '</div>');
       }
+      document.title = result.title;
       document.getElementById('cover').innerHTML = result.cover;
       document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
       document.getElementById('options').innerHTML = result.options;
@@ -149,6 +155,8 @@ function invokeSearch(e) {
 function search(needle) {
   if (!needle) {
     needle = document.getElementById('search').value;
+    // Firefox and Safari don't agree on hash encoding
+    needle = encodeURIComponent(needle);  //
   }
   if (needle.length < 2) {
     showBox('<div class=error>Search term must be longer than 2 characters</div>', 3000);
@@ -166,6 +174,7 @@ function search(needle) {
         showBox('<div class=error>' + result.error + '</div>');
       } else {
         if (result.numresults > 0) {
+          document.title = result.title;
           document.getElementById('content').innerHTML = result.content;
           document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
           document.getElementById('cover').innerHTML = '';
@@ -186,7 +195,12 @@ function search(needle) {
 
 function updateHash(func, content) {
   if (content) {
-    currentHash = func + '=' + decodeURIComponent(content);
+    var tempHash = func + '=' + content;
+    // Firefox and Safari don't agree on hash encoding
+    if (encodeURIComponent(tempHash) == currentHash) {
+      return;
+    }
+    currentHash = tempHash;
     window.location.hash = '#' + currentHash;
   } else {
     currentHash = '';
@@ -308,17 +322,17 @@ function jwPlayer() {
  * Play specified file or folder in the Flash Player.
  */
 function jwPlay(path, shuffle) {
-  var http = httpGet(prefix + path + "&verify");
+  var shuffleText = "";
+  if (shuffle) { shuffleText = "&shuffle=true"; }
+  var theFile = "{file:encodeURI('" + prefix + path + shuffleText + "&stream=flash')}";
+  jwPlayer().loadFile(eval("(" + theFile + ")"));
+
+  var http = httpGet(prefix + path + "&messages");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = eval("(" + http.responseText + ")");
       if (result.error) {
         showBox('<div class=error>' + result.error + '</div>');
-      } else {
-        var shuffleText = "";
-        if (shuffle) { shuffleText = "&shuffle=true"; }
-        var theFile = "{file:encodeURI('" + prefix + path + shuffleText + "&stream=flash')}";
-        jwPlayer().loadFile(eval("(" + theFile + ")")); 
       }
     }
   }
@@ -345,6 +359,46 @@ function jwObject() {
   so.addVariable('repeat', 'list');
   so.addVariable('thumbsinplaylist', 'false');
   return so;
+}
+
+
+/*
+ * Play specified file or folder.
+ */
+function play(path) {
+  var http = httpGet(prefix + path + "&showstreamtype");
+  http.onreadystatechange = function() {
+    if (http.readyState == 4) {
+      var result = eval("(" + http.responseText + ")");
+      if (result.error) {
+        showBox('<div class=error>' + result.error + '</div>');
+      } else {
+        type = result.streamtype;
+        shuffle = result.shuffle;
+        initiatePlay(path, type, shuffle);
+      }
+    }
+  }
+  http.send(null);
+}
+
+function initiatePlay(path, type, shuffle) {
+  if (type == 'flash') {
+    jwPlay(path, shuffle);
+    return;
+  }
+  var shuffleText = "";
+  if (shuffle) { shuffleText = "&shuffle=true"; }
+  var http = httpGet(prefix + path + shuffleText + "&stream=" + type);
+  http.onreadystatechange = function() {
+    if (http.readyState == 4) {
+      var result = eval("(" + http.responseText + ")");
+      if (result.error) {
+        showBox('<div class=error>' + result.error + '</div>', 5000);
+      }
+    }
+  }
+  http.send(null);
 }
 
 /**
