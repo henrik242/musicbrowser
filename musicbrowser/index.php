@@ -47,7 +47,7 @@ $config = array(
   # server playback and slimserver playback, and to rebuild the search db, e.g.
   #  'allowLocal' => array("/^10\.0\.0\./")
   # Leave as array() to disable.
-  'allowLocal' => array(),
+  'allowLocal' => array("/^10\.0\.0\./"),
    
   # Array of regular expression (regexp) matches for files/directories to hide
   'hideItems' => array("/^lost\+found/", "/^\./"),
@@ -60,8 +60,8 @@ $config = array(
   # Filename character set.  Usually utf-8 or iso-8859-1.
   'charset' => "utf-8",
 
-  # Fetch and show cover images inside folders when listing folders?  
-  'folderCovers' => true,
+  # Fetch and show cover images inside folders when listing folders?  This might be slow!
+  'folderCovers' => false,
 
   # 'securePath' => false allows symlinks to folders outside the 'path' folder, but might 
   # be less secure

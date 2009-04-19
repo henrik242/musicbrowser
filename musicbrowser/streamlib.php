@@ -137,8 +137,11 @@ class MusicBrowser {
     if (isset($_GET['builddb'])) {
       $this->show_builddb($this->path->root); // Exits
     }    
-    if (isset($_GET['verify'])) {
-      $this->show_verify(); // Exits
+    if (isset($_GET['messages'])) {
+      $this->show_messages(); // Exits
+    }
+    if (isset($_GET['showstreamtype'])) {
+      $this->show_streamtype(); // Exits
     }
 
     if ((is_dir($this->path->full) || is_file($this->path->full)) && isset($_GET['stream'])) {
@@ -151,15 +154,10 @@ class MusicBrowser {
       exit(0);
     } 
 
-    # Set stream/play type from $_GET or $_SESSION
-    $this->set_stream_type();
+    $this->resolve_streamtype_and_shuffle();
 
     if (isset($_GET['content'])) {
       $this->show_content($this->path->full); // Exits
-    }
-    
-    if (isset($_GET['message'])) {
-      Log::log($_GET['message']);
     }
 
     $search = array("/%folder%/", "/%flash_player%/", "/%searchfield%/", "/%admin%/", "/%version%/");
@@ -186,6 +184,11 @@ class MusicBrowser {
       $result['cover'] = $this->html_cover();
       $result['breadcrumb'] = $this->html_breadcrumb();
       $result['options'] = $this->html_options();
+      if (!empty($this->path->relative)) {
+        $result['title'] = $this->homeName .": ". $this->path->relative;
+      } else {
+        $result['title'] = $this->homeName;
+      }
       $result['error'] = Log::pop();
       
       print $this->json_encode($result);
@@ -213,26 +216,6 @@ class MusicBrowser {
     return '';
   }
 
-  /**
-   * Initialize SHUFFLE and STREAMTYPE defines in cases where they're not defined (i.e. search).
-   * @see show_search()
-   */
-  function init_shuffle_and_streamtype() {
-    if (!defined('SHUFFLE')) {
-      if (isset($_SESSION['shuffle'])) {
-        define('SHUFFLE', $_SESSION['shuffle']);
-      } else {
-        define('SHUFFLE', "false");
-      }
-    }
-    if (!defined('STREAMTYPE')) {
-      if (isset($_SESSION['streamtype'])) {
-        define('STREAMTYPE', $_SESSION['streamtype']);
-      } else {
-        define('STREAMTYPE', FLASH);
-      }
-    }
-  }
 
   /**
    * Search results (JSON).  Exits.
@@ -243,7 +226,7 @@ class MusicBrowser {
    */
   function show_search($url, $path, $charset) {
     $needle = Util::strip($_GET['search']);
-    $this->init_shuffle_and_streamtype();
+    $this->resolve_streamtype_and_shuffle();
     $searchresult = $this->search($needle);
 
     $content = "<ul class=searchresult>\n";
@@ -263,6 +246,16 @@ class MusicBrowser {
     $result['breadcrumb'] = $this->html_linkedtitle() . ': search for "' . $needle . '"'
      . "<br> <a class=folder href=\"javascript:previousDir()\">[go back]</a>\n";
     $result['error'] = Log::pop();
+    $result['title'] = $this->homeName . ": search for \"" . $needle . "\"";
+    print $this->json_encode($result);
+    exit(0);
+  }
+
+  function show_streamtype() {
+    $this->resolve_streamtype_and_shuffle();
+    $result['streamtype'] = STREAMTYPE;
+    $result['shuffle'] = SHUFFLE;
+    $result['error'] = Log::pop();
     print $this->json_encode($result);
     exit(0);
   }
@@ -271,24 +264,9 @@ class MusicBrowser {
    * Rebuilds search database (JSON). Exits.
    */
   function show_builddb($rootPath) {
-      $result = array();
-      $this->build_searchdb($rootPath);
-      $result['error'] = Log::pop();
-      print $this->json_encode($result);
-      exit(0);
-  }
-
-  /**
-   * Displays the already verified path validity (JSON).  Exits.
-   */
-  function show_verify() {
-      $result = array();
-      $msg = Log::pop();
-      if (!empty($msg)) {
-        $result['error'] = $msg;
-      }
-      print $this->json_encode($result);
-      exit(0);
+    $result = array();
+    $this->build_searchdb($rootPath);
+    $this->show_messages(); //Exits
   }
 
   /**
@@ -470,33 +448,35 @@ class MusicBrowser {
   }
 
   /**
-   * Fetches stream/play type from $_POST or $_COOKIE.
-   * @return string streamtype
+   * Resolves streamType and shuffle from $_GET and/or $_COOKIE.
    */
-  function set_stream_type() {
-    $streamType = $shuffle = "";
-    
-    if (isset($_GET['streamtype']) and strlen($_GET['streamtype']) > 0 
-        and in_array($_GET['streamtype'], $this->enabledPlay)) {
-      $streamType = $_GET['streamtype'];
-      $_SESSION['streamtype'] = $streamType;
-    } else if (isset($_SESSION['streamtype'])) {
-      $streamType = $_SESSION['streamtype'];
+  function resolve_streamtype_and_shuffle() {
+    $cookie = split(":", @ $_COOKIE['musicbrowser']);
+    $setcookie = false;
+
+    $streamType = @ $_GET['streamtype'];
+    if (in_array($streamType, $this->enabledPlay)) {
+      $setcookie = true;
+    } else if (isset($cookie[0])) {
+      $streamType = $cookie[0];
     }    
     if (!in_array($streamType, $this->enabledPlay)) {
-      $streamType = $this->enabledPlay[0];
+      $streamType = $this->enabledPlay[0]; // Defaults to first play method in list
     }
-    
-    if (isset($_GET['shuffle']) and strlen($_GET['shuffle']) > 0) {
-      $shuffle = $_GET['shuffle'];
-      $_SESSION['shuffle'] = $shuffle;
-    } else if (isset($_SESSION['shuffle'])) {
-      $shuffle = $_SESSION['shuffle'];
+
+    $shuffle = @ $_GET['shuffle'];
+    if (strlen($shuffle) > 0) {
+      $setcookie = true;
+    } else if (isset($cookie[1])) {
+      $shuffle = $cookie[1];
     }
     if ($shuffle != "true") {
       $shuffle = "false";
     }
-    
+
+    if ($setcookie) {
+      setcookie('musicbrowser', "$streamType:$shuffle");
+    }
     define('STREAMTYPE', $streamType);
     define('SHUFFLE', $shuffle);
   }
@@ -712,7 +692,7 @@ class MusicBrowser {
       $data = $this->invoke_xbmc("PlaylistNext");
     }
     $data = $this->invoke_xbmc("GetPlayListContents", "0");
-    $this->reload_page(); //exits
+    $this->show_messages(); //Exits
   }
   
   /**
@@ -730,7 +710,7 @@ class MusicBrowser {
     } else {
       Log::log("Error playing file(s) on server.  Check the error log.");
     }
-    $this->reload_page(); //exits
+    $this->show_messages(); //Exits
   }
 
   /**
@@ -738,32 +718,28 @@ class MusicBrowser {
    * @param string $item Item to play
    */
   function play_slimserver($item) {
-     $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . $this->path->full);
-     $player = "&player=" . urlencode($this->slimserverPlayer);
-     $url = $this->slimserverUrl . $action . $player;
-     $data = $this->http_get($url);
-     if (strlen($data) == 0) {
-       Log::log("Error reaching slimserver");
-     } else {
-       Log::log("Playing requested file(s) on Squeezebox");
-     }
-     $this->reload_page(); //exits
+    $action = "/status_header.html?p0=playlist&p1=play&p2=" . urlencode("file://" . $this->path->full);
+    $player = "&player=" . urlencode($this->slimserverPlayer);
+    $url = $this->slimserverUrl . $action . $player;
+    $data = $this->http_get($url);
+    if (strlen($data) == 0) {
+     Log::log("Error reaching slimserver");
+    } else {
+     Log::log("Playing requested file(s) on Squeezebox");
+    }
+    $this->show_messages(); //Exits
   }
   
   /**
-   * Redirect to current folder page.  Exits.
+   * Delivers messages as JSON and exits.
    */
-  function reload_page() {
-    $path = "";
-    if (defined('PATH_RELATIVE')) {
-      if (is_file($this->path->full)) {
-        $path = preg_replace("|/[^/]+$|", "", PATH_RELATIVE);
-      } else {
-        $path = PATH_RELATIVE;
-      }
-    }
-    $url = $this->url->full . "?path=" . Util::path_encode($path);
-    header("Location: $url");
+  function show_messages() {
+    $result = array();
+    $msg = Log::pop();
+    #if (!empty($msg)) {
+      $result['error'] = $msg;
+    #}
+    print $this->json_encode($result);
     exit(0);
   }
 
@@ -1108,9 +1084,9 @@ class Util {
   }
   
   function play_url($urlPath) {
-    if (STREAMTYPE == FLASH) {
+    if (STREAMTYPE == FLASH || STREAMTYPE == SLIM || STREAMTYPE == SERVER || STREAMTYPE == XBMC) {
        $urlPath = Util::js_url($urlPath);
-       return "javascript:jwPlay('$urlPath', " . SHUFFLE . ")";
+       return "javascript:play('$urlPath')";
     }
     return "index.php?path=" . $urlPath . "&amp;shuffle=" . SHUFFLE . "&amp;stream=" . STREAMTYPE;
   }

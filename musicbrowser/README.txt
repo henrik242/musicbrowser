@@ -70,8 +70,11 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.21-svn
-- Small UI and code changes
+0.21 (2009-04-19)
+- UI changes: two letters are used in sub headings
+- Several source code improvements
+- Unicode ajax fixes for Safari
+- Use ajax for squeezebox/server/xbmc playback
 
 0.20 (2009-04-13)
 - Added search
