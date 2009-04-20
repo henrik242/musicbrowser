@@ -301,7 +301,7 @@ function hotkey(e) {
     if (keynum == 66) jwPlayer().sendEvent('prev'); // 'b'
     if (keynum == 78) jwPlayer().sendEvent('next'); // 'n'
     if (keynum == 65) { // 'a'
-      jwPlay(currentFolder, false);
+      jwPlay(currentFolder, 'false');
       showBox("Playing all files in this folder", 3000);
     }
   }
@@ -323,7 +323,7 @@ function jwPlayer() {
  */
 function jwPlay(path, shuffle) {
   var shuffleText = "";
-  if (shuffle) { shuffleText = "&shuffle=true"; }
+  if (shuffle == 'true') { shuffleText = "&shuffle=true"; }
   var theFile = "{file:encodeURI('" + prefix + path + shuffleText + "&stream=flash')}";
   jwPlayer().loadFile(eval("(" + theFile + ")"));
 
