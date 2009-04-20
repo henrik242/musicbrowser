@@ -204,7 +204,7 @@ function updateHash(func, content) {
     window.location.hash = '#' + currentHash;
   } else {
     currentHash = '';
-    window.location.hash = '';
+    window.location.hash = '#';
   }
 }
 
