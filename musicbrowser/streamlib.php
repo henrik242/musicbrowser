@@ -29,7 +29,7 @@ define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
 
-define('VERSION', '0.22');
+define('VERSION', '0.23-svn');
 
 class MusicBrowser {
   
@@ -991,9 +991,7 @@ class Item {
   }
   
   function sort_index() {
-    //return date("Y-m-d", filectime(PATH_FULL . "/" . $this->item));
-    return strtoupper(mb_substr($this->item, 0, 1, $this->charset))
-        . strtolower(mb_substr($this->item, 1, 1, $this->charset));
+    return  mb_convert_case(mb_substr($this->item, 0, 2), MB_CASE_TITLE, $this->charset);
   }
   
   function js_url_path() {
