@@ -775,25 +775,37 @@ class MusicBrowser {
     $handle = false;
     $result = array();
     if (filesize($this->searchDB) == 0 || !is_readable($this->searchDB)) {
-        Log::log("Empty or unreadable search database ({$this->searchDB})");
-        return $result;
+      Log::log("Empty or unreadable search database ({$this->searchDB})");
+      return $result;
     }
     $handle = fopen($this->searchDB, 'r');
     while (!feof($handle)) {
-        $buffer = fgets($handle, 2048);
-        $found = true;
-        foreach ($needles as $needle) {
-          if (stristr($buffer, $needle) === false) {
-            $found = false;
-            break;
-          }
+      $buffer = $this->decode_ncd(fgets($handle, 2048));
+      $found = true;
+      foreach ($needles as $needle) {
+        if (stristr($buffer, $needle) === false) {
+          $found = false;
+          break;
         }
-        if ($found) {
-            $result[] = $buffer;
-        }
+      }
+      if ($found) {
+        $result[] = $buffer;
+      }
     }
     fclose($handle);
     return $result;
+  }
+
+  /**
+   * MacOSX encodes filenames in UTF-8 on Normalization Form D (NFD), while
+   * "everyone" else uses NFC. Normalizer is only available on PHP 5.3, or
+   * with the PECL Internationalization extension ("intl").
+   */
+  function decode_ncd($str) {
+    if (function_exists('normalizer_normalize') && !normalizer_is_normalized($str)) {
+      $str = normalizer_normalize($str);
+    }
+    return $str;
   }
 
   /**
@@ -842,14 +854,16 @@ class Log {
     if (!isset($_SESSION['message'])) {
       $_SESSION['message'] = $msg;
     } else {
-      $_SESSION['message'] .= "<br>$msg";
+      $_SESSION['message'] .= "\n<br>$msg";
     }
   }
 
   function pop() {
-    $msg = $_SESSION['message'];
-    unset($_SESSION['message']);
-    return $msg;
+    if (isset($_SESSION['message'])) {
+      $msg = $_SESSION['message'];
+      unset($_SESSION['message']);
+      return $msg;
+    }
   }
 }
 

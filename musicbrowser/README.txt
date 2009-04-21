@@ -70,6 +70,10 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.23-svn
+- Bugfix (#2766482): Search with non-ascii characters on MacOSX is working now, but
+  only when PHP 5.3 or the PECL Internationalization extension is installed
+
 0.22
 - Bugfix: flash player content was always shuffled
 - Bugfix: selecting the root folder wiped flash player playlist in Firefox 3.0.x

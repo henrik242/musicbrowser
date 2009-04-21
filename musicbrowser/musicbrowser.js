@@ -153,16 +153,17 @@ function invokeSearch(e) {
  * @param needle Use this needle.  Uses search field from page if empty.
  */
 function search(needle) {
+  var encodedNeedle = needle;
   if (!needle) {
     needle = document.getElementById('search').value;
     // Firefox and Safari don't agree on hash encoding
-    needle = encodeURIComponent(needle);  //
+    encodedNeedle = encodeURIComponent(needle);  //
   }
   if (needle.length < 2) {
     showBox('<div class=error>Search term must be longer than 2 characters</div>', 3000);
     return;
   }
-  updateHash('s', needle);
+  updateHash('s', encodedNeedle);
 
   var startTime = new Date().getSeconds();
   showBox('<div class=error>Searching...</div>');
