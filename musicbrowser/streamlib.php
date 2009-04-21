@@ -991,7 +991,8 @@ class Item {
   }
   
   function sort_index() {
-    return  mb_convert_case(mb_substr($this->item, 0, 2), MB_CASE_TITLE, $this->charset);
+    $firstChars = mb_substr($this->item, 0, 2, $this->charset);
+    return  mb_convert_case($firstChars, MB_CASE_TITLE, $this->charset);
   }
   
   function js_url_path() {
