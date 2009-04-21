@@ -29,7 +29,7 @@ define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
 
-define('VERSION', '0.21');
+define('VERSION', '0.22');
 
 class MusicBrowser {
   
