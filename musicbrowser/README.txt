@@ -70,7 +70,7 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.22-svn
+0.22
 - Bugfix: flash player content was always shuffled
 - Bugfix: selecting the root folder wiped flash player playlist in Firefox 3.0.x
 
