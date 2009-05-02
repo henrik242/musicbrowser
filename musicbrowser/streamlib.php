@@ -953,12 +953,12 @@ class Url {
   function Url($rootUrl) {
     if (empty($rootUrl)) {
       $folder = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
-      $this->root = self::protocol() . $_SERVER['HTTP_HOST'] . $folder;
+      $this->root = Url::protocol() . $_SERVER['HTTP_HOST'] . $folder;
     } else {
       $this->root = trim($rootUrl, '/');
-      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $root)) {
+      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $this->root)) {
         //$this->show_fatal_error("The \$config['url'] \"{$root}\" is invalid");
-        print "The \$config['url'] \"{$root}\" is invalid"; //FIXME
+        print "The \$config['url'] \"{$this->root}\" is invalid"; //FIXME
         exit(0);
       }
     }
@@ -1116,7 +1116,7 @@ class Util {
         $pos = 30;
       }
       $item = mb_substr($item, 0, $pos, $charset) . " "
-            . self::word_wrap(mb_substr($item, $pos, mb_strlen($item), $charset), $charset);
+            . Util::word_wrap(mb_substr($item, $pos, mb_strlen($item), $charset), $charset);
     }
     return $item;
   }
