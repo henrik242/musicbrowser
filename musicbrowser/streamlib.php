@@ -75,6 +75,9 @@ class MusicBrowser {
       switch ($key) {
         case 'url';
           $this->url = new Url($config['url']);
+          if ($this->url->full === NULL) {
+            $this->show_fatal_error(Log::pop());  //Exits
+          }
           break;
         case 'path';
           $this->path = new Path($config['path'], $this->securePath);
@@ -869,9 +872,9 @@ class Log {
 
 class Path {
 
-  var $root;     # e.g. /mnt/music
-  var $relative; # e.g. Covenant/Stalker.mp3
-  var $full;     # e.g. /mnt/music/Covenant/Stalker.mp3
+  var $root = NULL;     # e.g. /mnt/music
+  var $relative = NULL; # e.g. Covenant/Stalker.mp3
+  var $full= NULL;      # e.g. /mnt/music/Covenant/Stalker.mp3
   var $directFileAccess = false;
   
   /**
@@ -942,9 +945,9 @@ class Path {
 
 class Url {
 
-  var $root;     # e.g. http://mysite.com
-  var $relative; # e.g. musicbrowser
-  var $full;     # e.g. http://mysite.com/musicbrowser
+  var $root = NULL;     # e.g. http://mysite.com
+  var $relative = NULL; # e.g. musicbrowser
+  var $full = NULL;     # e.g. http://mysite.com/musicbrowser
   
   /**
    * Resolve the current URL into $root, $relative and $full.
@@ -956,10 +959,9 @@ class Url {
       $this->root = Url::protocol() . $_SERVER['HTTP_HOST'] . $folder;
     } else {
       $this->root = trim($rootUrl, '/');
-      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@-\.]+)+$#i', $this->root)) {
-        //$this->show_fatal_error("The \$config['url'] \"{$root}\" is invalid");
-        print "The \$config['url'] \"{$this->root}\" is invalid"; //FIXME
-        exit(0);
+      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@\.-]+)+$#i', $this->root)) {
+        Log::log("The \$config['url'] \"{$this->root}\" is invalid");
+        return;
       }
     }
     $this->relative = Util::pathinfo_basename($_SERVER['SCRIPT_NAME']);
