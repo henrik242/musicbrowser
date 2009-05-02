@@ -412,6 +412,7 @@ class MusicBrowser {
     $from = "";
     $i = 0;
     $mergedItems = array();
+    $groupList = array();
     foreach ($itemsByInitial as $index => $itemGroup) {
       $mergedItems = array_merge($mergedItems, $itemGroup);
       if (count($mergedItems) >= $headingThreshold || (count($itemsByInitial) -1) == $i) {
@@ -959,7 +960,7 @@ class Url {
       $this->root = Url::protocol() . $_SERVER['HTTP_HOST'] . $folder;
     } else {
       $this->root = trim($rootUrl, '/');
-      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@\.-]+)+$#i', $this->root)) {
+      if (!preg_match('#^https?:/(/[a-z0-9]+[a-z0-9:@\.-]+)+#i', $this->root)) {
         Log::log("The \$config['url'] \"{$this->root}\" is invalid");
         return;
       }
