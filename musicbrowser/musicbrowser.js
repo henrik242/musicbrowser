@@ -15,7 +15,7 @@ window.onload = function() {
   setInterval(pollHash, 1000);
 }
 
-/*
+/**
  * Poll the url hash regularly for changes.
  */
 function pollHash() {
@@ -30,7 +30,7 @@ function pollHash() {
   }
   
   currentHash = locationHash;
-  switch (currentHash.substr(0,1)) {
+  switch (currentHash[0]) {
       case 'p':
         updateDirectory(currentHash.replace(/^p=/, ''));
         break;
@@ -42,14 +42,14 @@ function pollHash() {
   }
 }
 
-/*
+/**
  * Change to previous directory.
  */
 function previousDir() {
   history.go(-1);
 }
 
-/*
+/**
  * Change directory.
  */
 function changeDir(path) {
@@ -57,7 +57,7 @@ function changeDir(path) {
   updateHash('p', path);
 }
 
-/*
+/**
  * Update content tag with specified content from specified path.
  */
 function updateDirectory(path) {
@@ -69,14 +69,14 @@ function updateDirectory(path) {
   document.getElementById('podcast').innerHTML = 'podcast';
 }
 
-/*
+/**
  * Set stream type.
  */
 function setStreamtype(path, streamtype) {
   fetchContent(path.replace('&', '%26') +  '&streamtype=' + streamtype); 
 }
 
-/*
+/**
  * Enable/disable shuffle.
  */
 function setShuffle(path) {
@@ -84,28 +84,32 @@ function setShuffle(path) {
   fetchContent(path.replace('&', '%26') + '&shuffle=' + shuffle); 
 }
 
-/*
+/**
  * HTTP GET content from path.
  */
 function fetchContent(path) {  
   var http = httpGet(prefix + path + "&content");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
-      if (result.error != '') {
-        showBox('<div class=error>' + result.error + '</div>');
+      var result = jsonEval(http.responseText);
+      if (!result) {
+        document.getElementById('content').innerHTML = "<div class=error>Error.</div>";
+      } else {
+        if (result.error != '') {
+          showBox('<div class=error>' + result.error + '</div>');
+        }
+        document.title = result.title;
+        document.getElementById('cover').innerHTML = result.cover;
+        document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
+        document.getElementById('options').innerHTML = result.options;
+        document.getElementById('content').innerHTML = result.content;
       }
-      document.title = result.title;
-      document.getElementById('cover').innerHTML = result.cover;
-      document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
-      document.getElementById('options').innerHTML = result.options;
-      document.getElementById('content').innerHTML = result.content;
     }
   }
   http.send(null);
 }
 
-/*
+/**
  * HTTP GET.
  * @return HTTP object
  */
@@ -120,35 +124,32 @@ function httpGet(fullPath) {
   return http;
 }
 
-/*
+/**
  * Enable search field, disable global hotkeys.
  */
 function enableSearch() {
   hotkeysDisabled = true;
-  var elem = document.getElementById('search');
-  elem.value = '';
+  document.getElementById('search').value = '';
 }
 
-/*
+/**
  * Disable search field, enable global hotkeys.
  */
 function disableSearch() {
   hotkeysDisabled = false;
-  var elem = document.getElementById('search');
-  elem.value = 'search';
+  document.getElementById('search').value = 'search';
 }
 
-/*
+/**
  * Invoke search on keypress==return.
  */
 function invokeSearch(e) {
-  var keynum = getKeyNum(e);
-  if (keynum == 13) {
+  if (getKeyNum(e) == 13) {
     search();
   }
 }
 
-/*
+/**
  * Search for file or folder.
  * @param needle Use this needle.  Uses search field from page if empty.
  */
@@ -170,10 +171,10 @@ function search(needle) {
   var http = httpGet(prefix + "&search=" + needle);
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
-      if (result.error) {
+      var result = jsonEval(http.responseText);
+      if (result && result.error) {
         showBox('<div class=error>' + result.error + '</div>');
-      } else {
+      } else if (result) {
         if (result.numresults > 0) {
           document.title = result.title;
           document.getElementById('content').innerHTML = result.content;
@@ -194,6 +195,11 @@ function search(needle) {
   http.send(null);
 }
 
+/**
+ * Update hash in url field.
+ * @param func Function, either 's' (search) or 'p' (path)
+ * @param content Value in hash
+ */
 function updateHash(func, content) {
   if (content) {
     var tempHash = func + '=' + content;
@@ -209,7 +215,7 @@ function updateHash(func, content) {
   }
 }
 
-/*
+/**
  * Rebuild search database.
  */
 function buildDB() {
@@ -222,21 +228,23 @@ function buildDB() {
   var http = httpGet(prefix + "&builddb");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
-      showBox('<div class=error>' + result.error + '</div>', 3000);
+      var result = jsonEval(http.responseText);
+      if (result) {
+        showBox('<div class=error>' + result.error + '</div>', 3000);
+      }
     }
   }
   http.send(null);
 }
 
-/*
+/**
  * Show album cover.
  */
 function showCover(picture) {
   showBox('<img alt="" border=0 src="' + picture + '">');  
 }
 
-/*
+/**
  * Show flash player hotkeys.
  */
 function showHelp() {
@@ -247,31 +255,27 @@ function showHelp() {
       + '<b>a</b> - play everything in this folder<br>');  
 }
 
-/*
- * Shows a dialogue.
+/**
+ * Show the dialogue.
  */
 function showBox(content, timeout) {
   document.getElementById('box').innerHTML 
     = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';
   if (timeout) {
-    hideBoxDelayed(timeout);
+    clearTimeout(boxTimeout);
+    boxTimeout = setTimeout(hideBox, timeout);
   }
 }
 
-function hideBoxDelayed(timeout) {
-  clearTimeout(boxTimeout);
-  boxTimeout = setTimeout(hideBox, timeout);
-}
-
-/*
- * Hides the dialogue.
+/**
+ * Hide the dialogue.
  * @see showBox()
  */
 function hideBox() {
   document.getElementById('box').innerHTML = '';
 }
 
-/*
+/**
  * @return keynum from keypress
  */
 function getKeyNum(e) {
@@ -284,7 +288,7 @@ function getKeyNum(e) {
   return keynum;
 }
 
-/*
+/**
  * Execute hotkey for flash player.
  */
 function hotkey(e) {
@@ -308,7 +312,30 @@ function hotkey(e) {
   }
 }
 
-/*
+/**
+ * Crude json evaluator.  Returns false if input isn't json.
+ */
+function jsonEval(text) {
+  if (text[0] != '{') {
+    showBox('<div class=error>Could not parse content.<br>'
+      + escapeHTML(text.substr(0,180)) + '...</div>');
+    return false;
+  } else {
+    return eval("(" + text + ")");
+  }
+}
+
+/**
+ * Escape HTML string.
+ */
+function escapeHTML(str) {
+   var div = document.createElement('div');
+   var text = document.createTextNode(str);
+   div.appendChild(text);
+   return div.innerHTML;
+}
+
+/**
  * @return Instance of the JW Flash Player
  */
 function jwPlayer() {
@@ -319,7 +346,7 @@ function jwPlayer() {
   }
 }
 
-/*
+/**
  * Play specified file or folder in the Flash Player.
  */
 function jwPlay(path, shuffle) {
@@ -331,8 +358,8 @@ function jwPlay(path, shuffle) {
   var http = httpGet(prefix + path + "&messages");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
-      if (result.error) {
+      var result = jsonEval(http.responseText);
+      if (result && result.error) {
         showBox('<div class=error>' + result.error + '</div>');
       }
     }
@@ -340,7 +367,7 @@ function jwPlay(path, shuffle) {
   http.send(null);
 }
 
-/*
+/**
  * @return A JW Flash Player SWF object
  */
 function jwObject() {
@@ -363,19 +390,19 @@ function jwObject() {
 }
 
 
-/*
+/**
  * Play specified file or folder.
  */
 function play(path) {
   var http = httpGet(prefix + path + "&showstreamtype");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
-      if (result.error) {
+      var result = jsonEval(http.responseText);
+      if (result && result.error) {
         showBox('<div class=error>' + result.error + '</div>');
-      } else {
-        type = result.streamtype;
-        shuffle = result.shuffle;
+      } else if (result) {
+        var type = result.streamtype;
+        var shuffle = result.shuffle;
         initiatePlay(path, type, shuffle);
       }
     }
@@ -383,6 +410,9 @@ function play(path) {
   http.send(null);
 }
 
+/**
+ * Initiate playback.
+ */
 function initiatePlay(path, type, shuffle) {
   if (type == 'flash') {
     jwPlay(path, shuffle);
@@ -393,7 +423,7 @@ function initiatePlay(path, type, shuffle) {
   var http = httpGet(prefix + path + shuffleText + "&stream=" + type);
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
-      var result = eval("(" + http.responseText + ")");
+      var result = jsonEval(http.responseText);
       if (result.error) {
         showBox('<div class=error>' + result.error + '</div>', 5000);
       }
