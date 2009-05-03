@@ -46,7 +46,7 @@ $config = array(
   # Array of regular expression (regexp) matches for hosts that are allowed to use 
   # server playback and slimserver playback, and to rebuild the search db, e.g.
   #  'allowLocal' => array("/^10\.0\.0\./")
-  # Leave as array() to disable.
+  # Set to array() to disable.
   'allowLocal' => array("/^10\.0\.0\./"),
    
   # Array of regular expression (regexp) matches for files/directories to hide
