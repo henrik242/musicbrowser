@@ -73,6 +73,9 @@ $config = array(
   # Number of columns
   'columns' => 5,
   
+  # Cover thumbnail size
+  'thumbSize' => 100,
+  
   # Set to true to display PHP errors and notices.  Should be set to false.
   'debug' => false,
 );

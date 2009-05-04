@@ -29,19 +29,15 @@ define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
 
-define('VERSION', '0.23');
+define('VERSION', '0.24-svn');
 
 class MusicBrowser {
   
   var $headingThreshold = 24;
-  var $thumbSize = 100;
   var $allowLocal = false;
-  var $homeName, $streamLib, $fileTypes, $template, $charset;
-  var $searchDB, $securePath, $serverPlayer, $hideItems;
-  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix;
   var $enabledPlay = array();
-  var $path, $url;
-  var $streamtype, $shuffle;
+  var $homeName, $streamLib, $fileTypes, $template, $charset, $searchDB, $securePath, $serverPlayer, $hideItems;
+  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix, $path, $url, $columns, $thumbSize, $streamtype, $shuffle;
 
   /**
    * @param array $config Assosciative array with configuration
