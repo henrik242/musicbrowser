@@ -70,7 +70,9 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.23-svn
+0.23
+- Added a template by Henrie van der Locht.  Look at
+  http://musicbrowser.svn.sourceforge.net/viewvc/musicbrowser/trunk/templates/henrie/ for details
 - Bugfix (#2785523): Url didn't resolve properly in some situations
 - Bugfix (#2766482): Search with non-ascii characters on MacOSX is working now, but
   only when PHP 5.3 or the PECL Internationalization extension is installed

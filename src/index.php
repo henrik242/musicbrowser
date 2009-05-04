@@ -69,6 +69,9 @@ $config = array(
   
   # Location of the search db text file. Leave empty to disable search.
   'searchDB' => "/tmp/musicbrowser-searchdb.txt",
+
+  # Number of columns
+  'columns' => 5,
   
   # Set to true to display PHP errors and notices.  Should be set to false.
   'debug' => false,
