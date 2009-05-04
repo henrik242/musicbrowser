@@ -1,5 +1,5 @@
 <?php
-require('streamlib.php');
+require('musicbrowser.php');
 
 $config = array(
   # Where your music is available on the file system (e.g. "/mnt/my_music/mp3")

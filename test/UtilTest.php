@@ -1,5 +1,5 @@
 <?php
-require_once dirname(__FILE__) . '/../src/streamlib.php';
+require_once dirname(__FILE__) . '/../src/musicbrowser.php';
 require_once 'PHPUnit/Framework.php';
 
 
