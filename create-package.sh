@@ -6,11 +6,11 @@ function die {
   exit 1
 }
 
-if [ ! -f "src/streamlib.php" ]; then
-  die cannot find src/streamlib.php
+if [ ! -f "src/musicbrowser.php" ]; then
+  die cannot find src/musicbrowser.php
 fi
 
-VERSION=`grep '^define..VERSION' src/streamlib.php | cut -d\' -f4`
+VERSION=`grep '^define..VERSION' src/musicbrowser.php | cut -d\' -f4`
 ZIPFILE="musicbrowser-$VERSION.zip"
 if [ -f $ZIPFILE ]; then
   die $ZIPFILE already exists
