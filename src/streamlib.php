@@ -239,7 +239,7 @@ class MusicBrowser {
       $entry = preg_replace("/[\r\n]/", "", $entry);
       $item = new Item($entry, $this->charset, false, $this->path, $this->url, $this->streamtype, $this->shuffle);
 
-      if (is_dir($path->root . "/$entry")) {
+      if (is_dir($this->path->root . "/$entry")) {
         $content .= '<li>' . $item->dir_link() . '</li>\n';
       } else {
         $content .= '<li>' . $item->file_link() . '</li>\n';
