@@ -29,11 +29,10 @@ define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
 
-define('VERSION', '0.23-svn');
+define('VERSION', '0.23');
 
 class MusicBrowser {
   
-  var $columns = 5;
   var $headingThreshold = 24;
   var $thumbSize = 100;
   var $allowLocal = false;
