@@ -1,31 +1,32 @@
 #!/bin/bash
 
 function die {
+  echo
   echo ERROR: $*
   exit 1
 }
 
-FOLDER="musicbrowser"
-VERSION=$1
-ZIPFILE="musicbrowser-$VERSION.zip"
-
-if [ $# -ne 1 ]; then
-  die Missing version number
+if [ ! -f "src/streamlib.php" ]; then
+  die cannot find src/streamlib.php
 fi
 
+VERSION=`grep '^define..VERSION' src/streamlib.php | cut -d\' -f4`
+ZIPFILE="musicbrowser-$VERSION.zip"
 if [ -f $ZIPFILE ]; then
   die $ZIPFILE already exists
 fi
 
+FOLDER="musicbrowser"
 if [ -d $FOLDER ]; then
   die the $FOLDER folder already exists
 fi
 
-if [ ! -d "src" ]; then
-  die the src folder is missing
+phpunit test
+if [ $? -ne 0 ]; then
+  die Did not pass unit tests
 fi
 
 mkdir $FOLDER
 cp src/* $FOLDER/
 rm $FOLDER/*~
-zip -r $ZIPFILE $FOLDER
+zip -r $ZIPFILE $FOLDER && rm -r $FOLDER && echo && echo Created $ZIPFILE
