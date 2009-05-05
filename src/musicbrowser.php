@@ -55,10 +55,10 @@ class MusicBrowser {
     if (!is_readable($config['template'])) {
       $this->show_fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
     }
-    
     session_start();
     
     $this->resolve_config($config);    
+    $this->workaround_missing_functions();    
     $this->streamLib = new StreamLib();
   }
 
@@ -100,21 +100,55 @@ class MusicBrowser {
       }
     }
     
-    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disablePlayMethod(SLIM);
-    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disablePlayMethod(SERVER);
-    if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->disablePlayMethod(XBMC);
+    if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disable_play_method(SLIM);
+    if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disable_play_method(SERVER);
+    if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->disable_play_method(XBMC);
   }
 
   /**
    * Disable an allowed play method.
    * @param string $disable Play method to disable
    */
-  function disablePlayMethod($disable) {
+  function disable_play_method($disable) {
     foreach ($this->enabledPlay as $key => $var) {
       if ($var == $disable) {
         unset($this->enabledPlay[$key]);
         break;
       }
+    }
+  }
+
+  function workaround_missing_functions() {
+    $message = "";
+    if (!function_exists('mb_substr')) {
+      $message .= "Warning: Your PHP installation lacks the Multibyte String Functions extension<br>";
+      function mb_substr($str, $start, $length = 1024, $encoding = false) {
+        return substr($str, $start, $length);      
+      }  
+      function mb_convert_case($str, $mode, $encoding = false) {
+        return ucwords($str);      
+      }  
+      function mb_strlen($str, $encoding = false) {
+        return strlen($str);      
+      }  
+    }
+    if (!function_exists('utf8_encode')) {
+      $message .= "Warning: Your PHP installation lacks the XML Parser Functions extension<br>";
+      function utf8_encode($str) {
+        return $str;
+      }  
+    }
+    if (!function_exists('normalizer_normalize')) {
+      $message .= "Warning: Your PHP installation lacks the Internationalization Functions extension<br>";
+      function normalizer_is_normalized($str) {
+        return true;
+      }
+      function normalizer_normalize($str) {
+        return $str;
+      }
+    }
+    if (!empty($message) && $this->debug) {
+      Logger::log($message);
     }
   }
 
@@ -740,9 +774,7 @@ class MusicBrowser {
   function show_messages() {
     $result = array();
     $msg = Logger::pop();
-    #if (!empty($msg)) {
-      $result['error'] = $msg;
-    #}
+    $result['error'] = $msg;
     print $this->json_encode($result);
     exit(0);
   }
@@ -806,7 +838,7 @@ class MusicBrowser {
    * with the PECL Internationalization extension ("intl").
    */
   function decode_ncd($str) {
-    if (function_exists('normalizer_normalize') && !normalizer_is_normalized($str)) {
+    if (!normalizer_is_normalized($str)) {
       $str = normalizer_normalize($str);
     }
     return $str;
@@ -858,7 +890,7 @@ class Logger {
     if (!isset($_SESSION['message'])) {
       $_SESSION['message'] = $msg;
     } else {
-      $_SESSION['message'] .= "\n<br>$msg";
+      $_SESSION['message'] .= "<br>\n$msg";
     }
   }
 
@@ -1128,9 +1160,6 @@ class Util {
    * The Flash MP3 player can only handle utf-8.
    */
   function convert_to_utf8($entry, $fromCharset) {
-    if (!function_exists('utf8_encode')) {
-      return $entry; // Won't look very nice, but at least it runs
-    }
     if ($fromCharset != "utf-8") {
       $entry = utf8_encode($entry);
     }
