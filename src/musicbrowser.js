@@ -30,11 +30,11 @@ function pollHash() {
   }
   
   currentHash = locationHash;
-  switch (currentHash[0]) {
-      case 'p':
+  switch (currentHash.substr(0, 2)) {
+      case 'p=':
         updateDirectory(currentHash.replace(/^p=/, ''));
         break;
-      case 's':
+      case 's=':
         search(currentHash.replace(/^s=/, ''));
         break;
       default:
@@ -316,7 +316,7 @@ function hotkey(e) {
  * Crude json evaluator.  Returns false if input isn't json.
  */
 function jsonEval(text) {
-  if (text[0] != '{') {
+  if (text.substr(0, 1) != '{') {
     showBox('<div class=error>Could not parse content.<br>'
       + escapeHTML(text.substr(0,180)) + '...</div>');
     return false;
