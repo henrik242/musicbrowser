@@ -128,6 +128,9 @@ class MusicBrowser {
       function mb_convert_case($str, $mode, $encoding = false) {
         return ucwords($str);      
       }  
+      function mb_strlen($str, $encoding = false) {
+        return strlen($str);      
+      }  
     }
     if (!function_exists('utf8_encode')) {
       $message .= "Warning: Your PHP installation lacks the XML Parser Functions extension<br>";
@@ -1046,7 +1049,7 @@ class Item {
   }
   
   function display_item() {
-    $displayItem = Util::word_wrap($this->item);
+    $displayItem = Util::word_wrap($this->item, $this->charset);
     $displayItem = Util::convert_to_utf8($displayItem, $this->charset);
     return $displayItem;
   }
@@ -1140,8 +1143,18 @@ class Util {
     return preg_replace('/[^\x20-\x21\x23-\x5b\x5d-\xff]/', "", $str);
   }
 
-  function word_wrap($item) {
-    return wordwrap(preg_replace("/_/", " ", $item), 40, " ", true);
+  function word_wrap($item, $charset) {
+    $pieces = split(" ", preg_replace("/_/", " ", $item));
+    $result = array();
+    foreach ($pieces as $piece) {
+      $current = $piece;
+      while (mb_strlen($current) > 40) {
+        $result[] = mb_substr($current, 0, 40, $charset);
+        $current = mb_substr($current, 40, 2048, $charset);
+      }
+      $result[] = $current;
+    }
+    return implode(" ", $result);
   }
 
   /**
