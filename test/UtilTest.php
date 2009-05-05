@@ -40,8 +40,8 @@ class UtilTest extends PHPUnit_Framework_TestCase {
   }
 
   public function testWordWrap() {
-    $this->assertEquals("abcdefghijklmnopqrstuvwxyzæøåa bcdefghijklmnopqrstuvwxyzæøåab cdefghijklmnopqrstuvwxyz",
-      $this->util->word_wrap("abcdefghijklmnopqrstuvwxyzæøåabcdefghijklmnopqrstuvwxyzæøåabcdefghijklmnopqrstuvwxyz", "utf-8"));
+    $this->assertEquals("abcdefghijklmnopqrstuvwxyzæøåabcdefgh ijklmnopqrstuvwxyzæøåabcdefghijklmnop qrstuvwxyz",
+      $this->util->word_wrap("abcdefghijklmnopqrstuvwxyzæøåabcdefghijklmnopqrstuvwxyzæøåabcdefghijklmnopqrstuvwxyz"));
   }
 
   public function testConvertToUtf8() {

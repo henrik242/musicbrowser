@@ -33,8 +33,8 @@ class ItemTest extends PHPUnit_Framework_TestCase {
   }
 
   public function testDisplayItem() {
-    $item = $this->getItem("", "æåe_test & file, a veryveryveryveryveryveryveryvery long file name indeed.mp3");
-    $this->assertEquals("æåe t est  & file, a veryveryveryveryver yveryveryvery long file name indeed.mp3",
+    $item = $this->getItem("", "æåe_test & file, a veryveryveryveryveryveryveryveryveryveryveryveryveryveryvery long file name indeed.mp3");
+    $this->assertEquals("æåe test & file, a veryveryveryveryveryveryveryveryveryvery veryveryveryveryvery long file name indeed.mp3",
       $item->display_item());
   }
 
@@ -56,20 +56,20 @@ class ItemTest extends PHPUnit_Framework_TestCase {
 <a class=file title="Play this song" href="javascript:play(\'test_folder/hei%25C3%25A6%25C3%25B8%25C3%25A5\')">heiæøå</a>
 '),
       array("", "test_folder", '<a title="Play files in this folder" href="javascript:play(\'test_folder\')"><img border=0 alt="|&gt; " src="play.gif"></a>
-<a class=folder href="javascript:changeDir(\'test_folder\')">test_folder</a>
+<a class=folder href="javascript:changeDir(\'test_folder\')">test folder</a>
 '),
     );
   }
 
   public function testDirLink() {
     $this->assertEquals('<a title="Play files in this folder" href="javascript:play(\'test_folder/%25C3%25A6%25C3%25A5e_test+%2526+file.mp3\')"><img border=0 alt="|&gt; " src="play.gif"></a>
-<a class=folder href="javascript:changeDir(\'test_folder/%25C3%25A6%25C3%25A5e_test+%2526+file.mp3\')">æåe_test & file.mp3</a>
+<a class=folder href="javascript:changeDir(\'test_folder/%25C3%25A6%25C3%25A5e_test+%2526+file.mp3\')">æåe test & file.mp3</a>
 ', $this->item->dir_link());
   }
 
   public function testFileLink() {
     $this->assertEquals('<a href="test_folder/%C3%A6%C3%A5e_test%20%26%20file.mp3"><img src="download.gif" border=0 title="Download this song" alt="[Download]"></a>
-<a class=file title="Play this song" href="javascript:play(\'test_folder/%25C3%25A6%25C3%25A5e_test+%2526+file.mp3\')">æåe_test & file.mp3</a>
+<a class=file title="Play this song" href="javascript:play(\'test_folder/%25C3%25A6%25C3%25A5e_test+%2526+file.mp3\')">æåe test & file.mp3</a>
 ', $this->item->file_link());
   }
 
