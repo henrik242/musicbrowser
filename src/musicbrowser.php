@@ -128,12 +128,6 @@ class MusicBrowser {
       function mb_convert_case($str, $mode, $encoding = false) {
         return ucwords($str);      
       }  
-      function mb_strlen($str, $encoding = false) {
-        return strlen($str);      
-      }  
-      function mb_strpos($haystack, $needle, $offset = 0, $encoding = false) {
-        return strpos($haystack, $needle, $offset);      
-      }  
     }
     if (!function_exists('utf8_encode')) {
       $message .= "Warning: Your PHP installation lacks the XML Parser Functions extension<br>";
