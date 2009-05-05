@@ -12,7 +12,7 @@ class LoggerTest extends PHPUnit_Framework_TestCase {
 
       $logger->log("trall");
       $logger->log("heiæøå");
-      $this->assertEquals("trall\n<br>heiæøå", $logger->pop());
+      $this->assertEquals("trall<br>\nheiæøå", $logger->pop());
     }
 }
 ?>
