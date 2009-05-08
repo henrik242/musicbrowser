@@ -57,7 +57,7 @@ $config = array(
   # Leave blank to disable.
   'serverPlayer' => "",
 
-  # Filename character set.  Usually utf-8 or iso-8859-1.
+  # Filename character set.  Typical values are utf-8, iso-8859-1 or windows-1252.
   'charset' => "utf-8",
 
   # Fetch and show cover images inside folders when listing folders?  This might be slow!

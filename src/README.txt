@@ -70,6 +70,15 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
+0.24-svn
+- Bugfix (#2788788): Non-ascii characters didn't resolve well under Windows
+- $thumbSize (size of cover image) available in index.php
+- streamlib.php was renamed to musicbrowser.php
+- Perform workaround if the Multibyte String Functions extension is missing
+- the word_wrap function didn't wrap properly
+- Bugfix: IE6 & 7 didn't know how to use string indexes
+- CSS template added
+
 0.23
 - Added a template by Henrie van der Locht.  Look at
   http://musicbrowser.svn.sourceforge.net/viewvc/musicbrowser/trunk/templates/henrie/ for details
