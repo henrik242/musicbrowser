@@ -120,26 +120,29 @@ class MusicBrowser {
 
   function workaround_missing_functions() {
     $message = "";
+    if (!function_exists('utf8_encode')) {
+      $message .= "Warning: Your PHP installation lacks the XML Parser Functions extension<br>\n";
+      function utf8_encode($str) {
+        return $str;
+      }
+    }
     if (!function_exists('mb_substr')) {
-      $message .= "Warning: Your PHP installation lacks the Multibyte String Functions extension<br>";
+      $message .= "Warning: Your PHP installation lacks the Multibyte String Functions extension<br>\n";
       function mb_substr($str, $start, $length = 1024, $encoding = false) {
         return substr($str, $start, $length);      
-      }  
+      }
       function mb_convert_case($str, $mode, $encoding = false) {
         return ucwords($str);      
-      }  
+      }
+      function mb_convert_encoding($entry , $toEncoding = null, $fromEncoding = null) {
+        return utf8_encode($entry);
+      }
       function mb_strlen($str, $encoding = false) {
         return strlen($str);      
       }  
     }
-    if (!function_exists('utf8_encode')) {
-      $message .= "Warning: Your PHP installation lacks the XML Parser Functions extension<br>";
-      function utf8_encode($str) {
-        return $str;
-      }  
-    }
     if (!function_exists('normalizer_normalize')) {
-      $message .= "Warning: Your PHP installation lacks the Internationalization Functions extension<br>";
+      $message .= "Warning: Your PHP installation lacks the Internationalization Functions extension<br>\n";
       function normalizer_is_normalized($str) {
         return true;
       }
@@ -323,8 +326,8 @@ class MusicBrowser {
    */
   function json_encode($array) {
     $json = array();
-    $search = array('|"|', '|/|', "/\n/");
-    $replace = array('\\"', '\\/', '\\n');
+    $search = array('|"|', '|/|', "/\n/", "/\r/");
+    $replace = array('\\"', '\\/', '\\n', '\\r');
     foreach ($array as $key => $value) {
       $json[] = ' "' . preg_replace($search, $replace, $key)
               . '": "' . preg_replace($search, $replace, $value) . '"';
@@ -688,9 +691,9 @@ class MusicBrowser {
     $parts = array_reverse(preg_split("|/|", $name));
     $name = implode(" - ", $parts);
     if ($this->path->directFileAccess) {
-      $url = $this->url->root . "/" . Util::path_encode($item, false);
+      $url = $this->url->root . "/" . Util::path_encode($item, false, $this->charset);
     } else {
-      $url = $this->url->full . "?path=" . Util::path_encode($item);
+      $url = $this->url->full . "?path=" . Util::path_encode($item, true, $this->charset);
     }
     $entry = array('title' => $name, 'url' => $url);
     if ($withTimestamp) {
@@ -721,7 +724,7 @@ class MusicBrowser {
     $data = $this->invoke_xbmc("Action", "13"); // ACTION_STOP
     $data = $this->invoke_xbmc("ClearPlayList", "0");
     $data = $this->invoke_xbmc("SetCurrentPlayList", "0");
-    $parameter = $this->xbmcPath . "/" . Util::path_encode($item, false, true) . ";0;[music];1";
+    $parameter = $this->xbmcPath . "/" . Util::path_encode($item, false, $this->charset) . ";0;[music];1";
     $data = $this->invoke_xbmc("AddToPlayList", $parameter);
     if (preg_match("/Error/", $data) == 1) {
       Logger::log("Error reaching Xbmc: <b>" . $data . "</b>&nbsp; for URL " . $parameter);
@@ -1120,14 +1123,14 @@ class Util {
   /**
    * Encode a fairly readable path for the URL.
    */
-  function path_encode($path, $encodeSpace = true, $utf8Encode = false) {
+  function path_encode($path, $encodeSpace = true, $fromCharset = null) {
      $search = array("|^%2F|", "|%2F|");
      $replace = array("", "/");
      if ($encodeSpace) {
        $search[] = "|%20|";
        $replace[] = "+";
      }
-     if ($utf8Encode) $path = utf8_encode($path);
+     if (!empty($fromCharset)) $path = Util::convert_to_utf8($path, $fromCharset);
      return preg_replace($search, $replace, rawurlencode($path)); 
   }
   
@@ -1162,7 +1165,7 @@ class Util {
    */
   function convert_to_utf8($entry, $fromCharset) {
     if ($fromCharset != "utf-8") {
-      $entry = utf8_encode($entry);
+      $entry = mb_convert_encoding($entry , "utf-8", $fromCharset);
     }
     return $entry;
   }
