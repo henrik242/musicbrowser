@@ -23,20 +23,20 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style type="text/css">
 <!--
-#header { background-color: #91AA9D; position:fixed; top:0px; left:0px; padding:0px; height:150px; width:100%; z-index:10; }
+#header { background-color: #91AA9D; position:fixed; top: 0px; left: 0px; padding: 0px; height: 150px; width: 100%; z-index:10; }
 #footer { background-color: #91AA9D; font-size: 0.8em; overflow: auto; width: 100%; height: 25px; 
           position: fixed; bottom: 0; left: 0; padding: 1px 0px; }
-#leftheader { text-align: left; margin-right: 500px; height:150px; overflow: auto; padding: 0px; }
+#leftheader { text-align: left; margin-right: 500px; height: 150px; overflow: auto; padding: 0px; }
 #rightheader { text-align: right; padding: 0px; float: right;	position: fixed; top: 0; right: 0; }
-#leftfooter { text-align: left;  float: left; }
-#rightfooter { text-align: right;  float: right; }
-#content { text-align: left;  top: 150px; width: 100%; position: relative; padding-bottom: 25px; }
+#leftfooter { text-align: left; float: left; }
+#rightfooter { text-align: right; float: right; }
+#content { text-align: left; top: 150px; width: 100%; position: relative; padding-bottom: 25px; }
 #breadcrumb { text-align: left; margin: 10px 10px 10px 10px; }
 #cover { margin: 0px 10px 10px 10px; }
 #box { display: block; color: black; position: fixed; z-index: 100; padding: 1em; top: 30px; left: 70px; }
 
 body { padding: 0px; margin: 0px; }
-.box { padding: 10px; background-color: #CCC; }
+.box { padding: 10px; background-color: #C0C0C0; }
 .boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
 .boxbutton:link { text-decoration: none;  }
 th { background-color: #3E606F; color: #FCFFF5; text-align: center; }
@@ -57,11 +57,15 @@ form { display: inline; }
 	-->
   </style>
 
-
 <!--[if lte IE 6]>
 <style type="text/css">
-  #box { position: absolute; }
-  #footer { position: absolute; }
+  #rightheader { overflow: visible; display: inline; }
+  #leftheader { overflow: visible; display: inline; }
+  #content { top: 0px; padding-bottom; 0px; }
+  #header { position: relative; }
+  #box { position: relative; display: inline; }
+  #cover { display: inline;
+  #footer { position: relative; overflow: visible; }
 </style>
 <![endif]-->
 
