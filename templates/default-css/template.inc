@@ -22,16 +22,18 @@
   <title></title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style type="text/css">
-<!-- 
+<!--
 #header { background-color: #91AA9D; position:fixed; top:0px; left:0px; padding:0px; height:150px; width:100%; z-index:10; }
-#footer { background-color: #91AA9D; padding: 1px; font-size: 0.8em; overflow: auto; width: 100%; height: 25px; position: fixed; bottom: 0; left: 0; }
-#leftheader { text-align: left; vertical-align: top; float: left; padding: 10px; }
-#rightheader { text-align: right; vertical-align: top; padding: 0px; float: right; }
+#footer { background-color: #91AA9D; font-size: 0.8em; overflow: auto; width: 100%; height: 25px; 
+          position: fixed; bottom: 0; left: 0; padding: 1px 0px; }
+#leftheader { text-align: left; margin-right: 500px; height:150px; overflow: auto; padding: 0px; }
+#rightheader { text-align: right; padding: 0px; float: right;	position: fixed; top: 0; right: 0; }
 #leftfooter { text-align: left;  float: left; }
 #rightfooter { text-align: right;  float: right; }
-#content { text-align: left;  top: 150px; width: 100%; position:relative; padding-bottom: 25px; }
-#breadcrumb { text-align: left; }
-#box { display: block; color: black; position:absolute; z-index: 100; padding: 1em; top: 30px; left: 70px; }
+#content { text-align: left;  top: 150px; width: 100%; position: relative; padding-bottom: 25px; }
+#breadcrumb { text-align: left; margin: 10px 10px 10px 10px; }
+#cover { margin: 0px 10px 10px 10px; }
+#box { display: block; color: black; position: fixed; z-index: 100; padding: 1em; top: 30px; left: 70px; }
 
 body { padding: 0px; margin: 0px; }
 .box { padding: 10px; background-color: #CCC; }
@@ -52,41 +54,44 @@ form { display: inline; }
 .error { color: red; }
 .feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
 .searchresult {list-style-type: none; padding-top: 10px; padding-right: 20px; margin: 0px; }
--->
+	-->
   </style>
-<!--[if lte IE 7]>
-<script type="text/javascript">onload = function() { content.focus() }</script>
+
+
+<!--[if lte IE 6]>
 <style type="text/css">
+  #box { position: absolute; }
   #footer { position: absolute; }
 </style>
 <![endif]-->
+
   <script type="text/javascript" src="musicbrowser.js"></script>
 </head>
 <body>
 
-<div id=box></div>
-<div id=header>
-  <div id=leftheader>
-    <div id=breadcrumb></div>
-    <div id=cover></div>
-  </div>
-  <div id=rightheader>%flash_player%</div>
+<div id="box"></div>
+<div id="header">
+	<div id="leftheader">
+		<div id="breadcrumb"></div>
+		<div id="cover"></div>
+	</div>
+	<div id="rightheader">%flash_player%</div>
 </div>
 
-<div id=content>
-    <div class=loading>initializing...</div>
+<div id="content">
+    <div class="loading">initializing...</div>
 </div>
 
-<div id=footer>
-  <div id=leftfooter>
+<div id="footer">
+   <div id="leftfooter">
       %searchfield%
-      <form method=post action="" name=streamtype><span id=options></span></form>
+      <form method="post" action="" name=streamtype><span id="options"></span></form>
   </div>
-  <div id=rightfooter>
-      <a class=feet href="#" id=podcast>podcast</a>|
-      <a class=feet href="javascript:showHelp()">hotkeys</a>|
+  <div id="rightfooter">
+      <a class="feet" href="#" id="podcast">podcast</a>|
+      <a class="feet" href="javascript:showHelp()">hotkeys</a>|
       %admin%
-      <span class=feet><a href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a> v%version%</span>
+      <span class="feet"><a href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a> v%version%</span>
   </div>
 </div>
 </body></html>
