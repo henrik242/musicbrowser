@@ -529,7 +529,7 @@ class MusicBrowser {
     if (!empty($link)) {
       return "<a href=\"javascript:showCover('$link')\">"
            . "<img title=\"View enlarged cover\" alt=\"\" border=0 src=\"$link\" width={$this->thumbSize} "
-           . "height={$this->thumbSize} align=left></a>";
+           . "height={$this->thumbSize}></a>";
     }
     return "";
   }
