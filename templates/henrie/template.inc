@@ -1,4 +1,10 @@
+<!--[if lte IE 6]>
+<!-- Quirksmode ON, a comment before the doctype declaration triggers quirksmode -->
+<!-- quirksmode triggered is needed for a workaround for displaying fixed elements in IE5 and IE6 -->
+<!-- making sure the workaround is only used by IE5 and IE6 by using Conditional Comments [if lte IE 6] -->
+<![endif]-->
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
 <!--
    This template is for Music Browser.
 
@@ -26,92 +32,186 @@
 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-<!-- start original styles -->
-<style type="text/css">
-	<!-- 
-	th { background-color: #3E606F; color: #FCFFF5; text-align: center; }
-	a { color: #2222AA; text-decoration: none; }
-	a:hover { text-decoration: underline; }
-	form { display: inline; }
-	.header { background-color: #91AA9D; }
-	.footer { background-color: #91AA9D; font-size: 0.8em; }
-	.folder { font-size: 0.8em; }
-	.file { font-size: 0.8em; }
-	.cell { vertical-align: bottom; text-align: left; }
-	.odd { background-color: #FCFFF5; }
-	.even { background-color: #D1DBBD; }
-	.title { font-weight: bold; }
-	.path { font-weight: bold; }
-	.loading { text-decoration: blink; text-align: center; font-style: italic; }
-	
-	/* Styles for messagebox that is used for as example displaying hotkeys */
-	#box { display: block; color: black; position:fixed; padding: 1em; top: 30px; left: 70px; }
-	.box { padding: 10px; background-color: #CCC; }
-	.boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white; }
-	.boxbutton:link { text-decoration: none;  }
-	.error { color: red; }
-	
-	.feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
-	.leftheader { text-align: left; vertical-align: top; }
-	.rightheader { text-align: right; vertical-align: top;}
-	#content { text-align: left; }
-	#breadcrumb { text-align: left; padding-bottom: 10px; }
-	.searchresult {list-style-type: none}
-	-->
-</style>
-<!-- end original styles -->
-
-<!-- start new and changed styles for template by Henrie -->
-<!-- Placed after original styles to override original styles if needed -->
 <style type="text/css">
 <!--
-	body { background-color:#DCDCDC; font-family:verdana,arial,sans-serif; font-size:100%; }
-	#header { position:fixed; top:0px; left:0px; padding:0px; height:50px; width:100%; background-color:#5D5D5D; z-index:10;}
-	#pagetitle {float:left; padding-left:20px; padding-top:5px; }
-	#pagetitle h1, #pagetitle h1 a { display:inline; color:#00AABB;}
-	#menu { float:right; padding-top:10px; padding-right:20px; color:white; font-size:0.8em; }
-	.feet { color:white; }
-	
-	/* rightcolumn: padding-top = height of #header ; width = depends on wanted width and width of player defined in musicbrowser.js file "var flashWidth" */
-	#leftcolumn { position:fixed; top:0px; left:0px; width:520px; height:100%; padding-top:50px; background-color:#5D5D5D; }
-	#playercontainer { width:100%; height:auto; margin:10px; }
-	#breadcrumb { margin-left:10px; padding:10px; background-color:#DCDCDC; }
-	#cover { margin-left:10px; padding:10px; background-color:#DCDCDC; overflow:hidden; }
-	#footer { position:absolute; bottom: 50px; padding:10px; color:white; font-size:0.8em; }
-	
-	/* rightcolumn: top = height of #header ; margin-left = width of #leftcolumn */
-	#rightcolumn { position:relative; top:50px; margin-left:520px; padding:10px; }
-	#rightcolumn table { border-collapse:collapse; width:100%; }
-	th { background-color: #7B7B7B; color: #FFFFFF; text-align: center; }
-	.odd { background-color: #FFFFFF } /* is the first line beneath title of grouped items */
-	.even { background-color: #F7F7F7 } /* is the second line beneath title of grouped items */
-	.cell { padding-left:5px; }
-	.cell img {float:left; margin-right:5px; }
+/* start styles for page division parts */
+body {
+	margin: 0;
+	padding: 60px 0 0 520px; /* for top and left fixed bar ; set top padding value also as height at div#header and top at div.exploder ; set left padding value also as width at div#exploder */
+	color: #000;
+	background: #DCDCDC;;
+	font-family: Verdana, Geneva, sans-serif; /* global font style defined because IE6 would use different font styles for breadcrumbs, table contents and footer ; overview here http://www.ampsoft.net/webdesign-l/WindowsMacFonts.html */  
+	font-size: 1em;
+	}
+div#header, div.exploder {
+	position: absolute;
+	left: 0;
+	overflow: auto;
+	background: #5D5D5D;
+	}
+div#header {
+	top: 0;
+	z-index: 2;
+	width: 100%;
+	height: 60px; /* same height as top padding of body */
+	color: #000;
+	text-align: right;
+	}
+div.exploder {
+	top: 60px; /* same height as top padding of body */
+	bottom: 0;
+	width: 520px; /* same width as left padding of body */
+	margin: 0;
+	color: #000;
+	}
+div#content {
+  padding: 15px;
+  }
 
-	/* Changed styles for messagebox that is used for as example displaying hotkeys */
-	#box { position:absolute; z-index:100; left:520px; top:50px; } /* changed style to standard style ; left = margin-left of #leftcolumn + 20px */
+@media screen
+	{
+	body>div#header, body>div.exploder {
+		position: fixed;
+		}
+	}
+/* end styles for page division parts */
 -->
 </style>
-<!-- end new and changed styles for template by Henrie -->
+
+
+<style type="text/css">
+<!--
+/* start styles for Music Browser content parts */
+div#header h1, div#header h1 a {
+	margin-left: 10px;
+	font-size: 1.5em;
+	color: #00AABB;
+	float: left;
+	}
+#menu {
+	color: white;
+	font-size: 0.8em;
+	padding: 10px 20px 0 0;
+	}
+div#playercontainer { 
+	margin:10px 0px 10px 10px;
+	}
+div#breadcrumb {
+	margin-left: 10px;
+	padding: 10px;
+	background-color: #DCDCDC;
+	}
+div#cover {
+	margin-left: 10px;
+	padding: 10px;
+	background-color: #DCDCDC;
+	text-align: left; /* alignment of the cover image beneath the breadcrumb  in the tracklist of an album */
+	}
+div#footer {
+	overflow: auto;
+	width: 520px;
+	height: 25px; /* same height as top padding of body */
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	color: #FFF;
+	padding: 0 0 5px 0;
+	/* margin: 0px; /* needed to remove horizontal scrollbar in firefox */
+	font-size:0.8em;
+	/*background-color:#5D5D5D;*/
+	/*opacity:0.6; filter:alpha(opacity=60);*/
+	}
+
+#box { display: block; color: black; position:fixed; padding: 1em; top: 70px; left: 530px; }
+.box { padding: 10px; background-color: #CCC; }
+.boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
+.boxbutton:link { text-decoration: none;  }
+
+a { color: #2222AA; text-decoration: none; }
+a:hover { text-decoration: underline; }
+form { display: inline; }
+.folder { font-size: 0.8em; }
+.file { font-size: 0.8em; }
+
+table { border-collapse:collapse; }
+th { background-color: #7B7B7B; color: #FFFFFF; text-align: center; }
+.odd { background-color: #FFFFFF } /* is the first line beneath title of grouped items */
+.even { background-color: #F7F7F7 } /* is the second line beneath title of grouped items */
+.cell {  vertical-align: top; text-align: left; padding-left: 5px; }
+.cell img {float: left; margin-right: 5px; } /* used for placement of album art in list */
+
+.title { font-weight: bold; }
+.path { font-weight: bold; }
+.loading { text-decoration: blink; text-align: center; font-style: italic; }
+.error { color: red; }
+.feet { text-decoration: none; padding-right: 10px; padding-left: 10px; color: white; }
+.searchresult {list-style-type: none; padding-top: 10px; padding-right: 20px; margin: 0px; }
+/* end styles for Music Browser content parts */
+-->
+</style>
+
+
+<!-- start position:fixed workaround for IE5 and IE6 -->
+<!-- trick found here http://tagsoup.com/cookbook/css/fixed/#gtev5 -->
+<!--[if lte IE 6]>
+<style type="text/css">
+body { 
+  height: 100%;
+  overflow: hidden; 
+  padding: 60px 0 0 0; /* set top padding at same size as left padding of body, set other values at 0 (zero) */
+  font-size: 100%;
+  }
+div#content {
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+  overflow-x: auto;
+  margin: 0 0 0 520px; /* set left margin at same size as left padding of body */
+  padding: 15px;
+  }
+div#header {
+  margin: 0;
+  overflow: auto;
+  }
+div.exploder {
+  top: 0;
+  width: 520px;  /* same width as left padding of body */
+  height: 100%;
+  overflow: hidden;
+  padding: 60px 0 0 0; /* set top padding at same size as top padding of body, set other values at 0 (zero) */
+  }
+div#fixedbox {
+  height: 100%;
+  width: 520px;  /* same width as left padding of body */
+  overflow: auto;
+  }
+div#box {
+	position: absolute;
+	}
+</style>
+<script type="text/javascript">onload = function() { content.focus() }</script>
+<![endif]-->
+<!-- end position:fixed workaround for IE5 and newer IE browsers -->
+
 
 <script type="text/javascript" src="musicbrowser.js"></script>
+
 
 </head>
 <body>
 
-<!-- start div id="box" -->
-<!-- displays messages which can be close by clicking on X-->
-<div id=box></div>
+
+<!-- start div id="box" (for displaying messages) -->
+<div id="box"></div>
 <!-- end div id="box" -->
+
 
 <!-- start div id="header" -->
 <div id="header">
-	<div id="pagetitle">
-		<h1><a href="http://musicbrowser.sf.net/">Music Browser</a></h1>
-	</div>
+	<h1><a href="http://musicbrowser.sf.net/">Music Browser</a></h1>
 	<div id="menu">
 		%searchfield%
-		<form method=post action="" name=streamtype><span id=options></span></form>|
+		<form method="post" action="" name="streamtype"><span id="options"></span></form>|
 		<a class="feet" href="#" id=podcast>podcast</a>|
 		<a class="feet" href="javascript:showHelp()">hotkeys</a>|
 		%admin%
@@ -119,32 +219,44 @@
 </div>
 <!-- end div id="header" -->
 
-<!-- start div id="leftcolumn" -->
-<div id="leftcolumn">
-	<div id="footer">
-		<span class="feet"><a class="feet" href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a> v%version%</span>|<span class="feet">Template by Henrie</span>
-	</div>
-	<div id="playercontainer">
-		%flash_player% <!-- inserts <div id="player">playercode</div> -->
-	</div>
-	<div id="breadcrumb"></div>
-	<div id="cover"></div>
-</div>
-<!-- end div id="leftcolumn" -->
 
-<!-- start div id="rightcolumn" -->
-<div id="rightcolumn">
+<!-- start div id="exploder" (left column) placeholder needed for IE5/6 fix -->
+<div class="exploder">
+	<!-- start div id="fixedbox" (contents of left column) -->
+	<div id="fixedbox">
+
+		<div id="playercontainer">
+			%flash_player% <!-- inserts <div id="player">playercode</div> -->
+		</div>
+		<div id="breadcrumb"></div>
+		<div id="cover"></div>
+
+		<!-- start div id="footer" -->
+		<div id="footer">
+			<span class="footertext"><span class="feet"><a class="feet" href="http://musicbrowser.sf.net/">musicbrowser.sf.net</a> v%version%</span>|<span class="feet">Template by Henrie</span></span>
+		</div>
+		<!-- end div id="footer" -->
+
+	</div>
+	<!-- end div id="fixedbox" -->
+</div>
+<!-- end div id="exploder" -->
+
+
+<!-- start div id="content" (right column) -->
+<div id='content'>
 	<!-- start albumlist or tracklist -->
 	<table>
 		<tr>
-			<td colspan=5 id=content>
+			<td id="content">
 				<div class=loading>initializing...</div>
 			</td>
 		</tr>
 	</table>
 	<!-- end albumlist or tracklist -->
 </div>
-<!-- end div id="rightcolumn" -->
+<!-- end div id="content" (right column) -->
+
 
 </body>
 </html>
