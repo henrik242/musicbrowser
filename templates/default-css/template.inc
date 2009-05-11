@@ -23,44 +23,44 @@ Copyright 2006-2008 Henrik Brautaset Aronsen
   <title>Music Browser</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style type="text/css">
-		<!--
-		body { margin: 0; padding: 150px 0 25px 0; color: #000; background: #fff; 
-					 font-family: Times New Roman, Times, serif;  font-size: 1em; }
-		div#header { width: 100%; height: 150px; position: absolute; top: 0; left: 0; color: #000; background:  #91AA9D; padding: 0px; }
-		div#footer { overflow: auto; width: 100%; height: 25px; position: absolute; bottom: 0; left: 0; 
-					 color: #000; background: #91AA9D; padding: 1px; }
-		div#content { padding: 0; }
-		@media screen {
-			body>div#header { position: fixed; }
-			body>div#footer { position: fixed; }
-		}
-		div#leftheader { text-align: left;  margin-right: 500px;  height: 150px; overflow: auto; padding: 0px; }
-		div#rightheader { position: absolute; height: 150px; top: 0; right: 0; }
-		div#leftfooter { float: left; text-align: left; }
-		div#rightfooter { float: right; text-align: right; }
-		div#breadcrumb { margin: 10px 10px 10px 10px; }
-		div#cover { margin: 0px 10px 10px 10px; }
-		#box { display: block; color: black; position:absolute; z-index: 100; padding: 1em; top: 30px; left: 70px; }
+    <!--
+    body { margin: 0; padding: 150px 0 25px 0; color: #000; background: #fff; 
+        	 font-family: Times New Roman, Times, serif;  font-size: 1em; }
+    div#header { width: 100%; height: 150px; position: absolute; top: 0; left: 0; color: #000; background:  #91AA9D; padding: 0px; }
+    div#footer { overflow: auto; width: 100%; height: 25px; position: absolute; bottom: 0; left: 0; 
+        	 color: #000; background: #91AA9D; padding: 1px; font-size: 0.8em; }
+    div#content { padding: 0; }
+    @media screen {
+    	body>div#header { position: fixed; }
+    	body>div#footer { position: fixed; }
+    }
+    div#leftheader { text-align: left;  margin-right: 500px;  height: 150px; overflow: auto; padding: 0px; }
+    div#rightheader { position: absolute; height: 150px; top: 0; right: 0; }
+    div#leftfooter { float: left; text-align: left; }
+    div#rightfooter { float: right; text-align: right; }
+    div#breadcrumb { margin: 10px 10px 10px 10px; }
+    div#cover { margin: 0px 10px 10px 10px; }
+    #box { display: block; color: black; position:absolute; z-index: 100; padding: 1em; top: 30px; left: 70px; }
 
-		.box { padding: 10px; background-color: #CCC; }
-		.boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
-		.boxbutton:link { text-decoration: none;  }
-		th { background-color: #3E606F; color: #FCFFF5; text-align: center; }
-		a { color: #2222AA; text-decoration: none; }
-		a:hover { text-decoration: underline; }
-		form { display: inline; }
-		.folder { font-size: 0.8em; }
-		.file { font-size: 0.8em; }
-		.cell { vertical-align: top; text-align: left; }
-		.odd { background-color: #FCFFF5; }
-		.even { background-color: #D1DBBD; }
-		.title { font-weight: bold; }
-		.path { font-weight: bold; }
-		.loading { text-decoration: blink; text-align: center; font-style: italic; }
-		.error { color: red; }
-		.feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
-		.searchresult {list-style-type: none; padding-top: 10px; padding-right: 20px; margin: 0px; }
-		-->
+    .box { padding: 10px; background-color: #CCC; }
+    .boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
+    .boxbutton:link { text-decoration: none;  }
+    th { background-color: #3E606F; color: #FCFFF5; text-align: center; }
+    a { color: #2222AA; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    form { display: inline; }
+    .folder { font-size: 0.8em; }
+    .file { font-size: 0.8em; }
+    .cell { vertical-align: top; text-align: left; }
+    .odd { background-color: #FCFFF5; }
+    .even { background-color: #D1DBBD; }
+    .title { font-weight: bold; }
+    .path { font-weight: bold; }
+    .loading { text-decoration: blink; text-align: center; font-style: italic; }
+    .error { color: red; }
+    .feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
+    .searchresult {list-style-type: none; padding-top: 10px; padding-right: 20px; margin: 0px; }
+    -->
   </style>
 
   <!-- Workaround for IE5 and IE6 -->
@@ -92,7 +92,7 @@ Copyright 2006-2008 Henrik Brautaset Aronsen
 <div id='footer'>
   <div id="leftfooter">
     %searchfield%
-    <form method="post" action="" name=streamtype><span id="options"></span>|</form>
+    <form method="post" action="" name=streamtype><span id="options"></span></form>
   </div>
   <div id="rightfooter">
     <a class="feet" href="#" id="podcast">podcast</a>|
