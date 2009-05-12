@@ -70,7 +70,10 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.24
+0.25-svn
+- ...
+
+0.24 (2009-05-12)
 - Bugfix (#2788788): Non-ascii characters didn't resolve well under Windows
 - $thumbSize (size of cover image) available in index.php
 - streamlib.php was renamed to musicbrowser.php
@@ -79,14 +82,14 @@ Changelog
 - Bugfix: IE6 & 7 didn't know how to use string indexes
 - CSS template added.  Thanks to Henrie van der Locht for all help with this template.
 
-0.23
+0.23 (2009-05-23)
 - Added a template by Henrie van der Locht.  Look at
   http://musicbrowser.svn.sourceforge.net/viewvc/musicbrowser/trunk/templates/henrie/ for details
 - Bugfix (#2785523): Url didn't resolve properly in some situations
 - Bugfix (#2766482): Search with non-ascii characters on MacOSX is working now, but
   only when PHP 5.3 or the PECL Internationalization extension is installed
 
-0.22
+0.22 (2009-04-21)
 - Bugfix: flash player content was always shuffled
 - Bugfix: selecting the root folder wiped flash player playlist in Firefox 3.0.x
 
