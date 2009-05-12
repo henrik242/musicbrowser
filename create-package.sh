@@ -30,3 +30,22 @@ mkdir $FOLDER
 cp src/* $FOLDER/
 rm $FOLDER/*~
 zip -r $ZIPFILE $FOLDER && rm -r $FOLDER && echo && echo Created $ZIPFILE
+
+echo
+echo -n "Upload $ZIPFILE to sourceforge (y/N)? "
+read i
+if [ "$i" = "y" ]; then
+  scp $ZIPFILE mingoto@frs.sourceforge.net:uploads
+fi
+
+RELEASE=`echo RELEASE_$VERSION | sed 's/\./_/'`
+echo
+echo -n "Tag release as $RELEASE to sourceforge (y/N)? "
+read i
+if [ "$i" = "y" ]; then
+  svn copy https://mingoto@musicbrowser.svn.sourceforge.net/svnroot/musicbrowser/{trunk,tags/$RELEASE}
+fi
+
+echo
+echo "Last but not least, please update the web site by issuing:"
+echo ssh -t mingoto,musicbrowser@shell.sourceforge.net create
