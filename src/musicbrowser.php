@@ -28,8 +28,9 @@ define('SLIM', 'slim');
 define('RSS', 'rss');
 define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
+define('NATIVE', 'native');
 
-define('VERSION', '0.24');
+define('VERSION', '0.25-svn');
 
 class MusicBrowser {
   
@@ -37,7 +38,7 @@ class MusicBrowser {
   var $allowLocal = false;
   var $enabledPlay = array();
   var $homeName, $streamLib, $fileTypes, $template, $charset, $searchDB, $securePath, $serverPlayer, $hideItems;
-  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix, $path, $url, $columns, $thumbSize, $streamtype, $shuffle;
+  var $maxPlaylistSize, $slimserverUrl, $slimserverUrlSuffix, $path, $url, $columns, $thumbSize, $streamType, $shuffle;
 
   /**
    * @param array $config Assosciative array with configuration
@@ -50,14 +51,19 @@ class MusicBrowser {
       ini_set('display_errors', 0);
     }
     if (!function_exists('preg_match')) {
-      $this->show_fatal_error('The preg_match function does not exist. Your PHP installation lacks the PCRE extension');
+      print 'The preg_match function does not exist. Your PHP installation lacks the PCRE extension';
+      exit(1);
     }
     if (!is_readable($config['template'])) {
-      $this->show_fatal_error("The \$config['template'] \"{$config['template']}\" isn't readable");
+      print "The \$config['template'] \"{$config['template']}\" isn't readable";
+      exit(1);
     }
     session_start();
     
-    $this->resolve_config($config);    
+    if (!$this->resolve_config($config)) {
+      print "Could not resolve config. " . Logger::pop();
+      exit(1);
+    }
     $this->workaround_missing_functions();    
     $this->streamLib = new StreamLib();
   }
@@ -72,13 +78,13 @@ class MusicBrowser {
         case 'url';
           $this->url = new Url($config['url']);
           if ($this->url->full === NULL) {
-            $this->show_fatal_error(Logger::pop());  //Exits
+            return false;
           }
           break;
         case 'path';
           $this->path = new Path($config['path'], $this->securePath);
           if ($this->path->full === NULL) {
-            $this->show_fatal_error(Logger::pop());  //Exits
+            return false;
           }
           break;
         case 'allowLocal':
@@ -103,6 +109,7 @@ class MusicBrowser {
     if (!$this->allowLocal || strlen($this->slimserverUrl) == 0) $this->disable_play_method(SLIM);
     if (!$this->allowLocal || strlen($this->serverPlayer) == 0) $this->disable_play_method(SERVER);
     if (!$this->allowLocal || strlen($this->xbmcUrl) == 0) $this->disable_play_method(XBMC);
+    return true;
   }
 
   /**
@@ -153,84 +160,79 @@ class MusicBrowser {
     if (!empty($message) && $this->debug) {
       Logger::log($message);
     }
-  }
-
-  /**
-   * Exit with error.
-   * @param string $message Error message
-   */
-  function show_fatal_error($message) {
-    echo "<html><body text=red>ERROR: $message</body></html>";
-    exit(0);
-  }
-  
+  }  
   
   /**
    * Display requested page, or deliver ajax content.
    */
   function show_page() {
+    $result = $this->execute();
+    if (empty($result)) {
+      $result = $this->show_messages();
+    }
+    print $result;
+    exit(0);
+  }
 
+  function execute() {
     if (isset($_GET['search'])) {
-      $this->show_search(); // Exits
+      return $this->show_search();
     }    
     if (isset($_GET['builddb'])) {
-      $this->show_builddb($this->path->root); // Exits
+      return $this->show_builddb($this->path->root);
     }    
     if (isset($_GET['messages'])) {
-      $this->show_messages(); // Exits
+      return $this->show_messages();
     }
     if (isset($_GET['showstreamtype'])) {
-      $this->show_streamtype(); // Exits
+      return $this->show_streamtype();
     }
 
     if ((is_dir($this->path->full) || is_file($this->path->full)) && isset($_GET['stream'])) {
       # If streaming is requested, do it
-      $this->stream($_GET['stream'], @$_GET['shuffle']);
-      exit(0);
+      return $this->stream($_GET['stream'], @$_GET['shuffle']);
     } elseif (is_file($this->path->full)) {
       # If the path is a file, download it
-      $this->streamLib->stream_file_auto($this->path->full);
-      exit(0);
+      return $this->streamLib->stream_file_auto($this->path->full);
     } 
 
     $this->resolve_streamtype_and_shuffle();
 
     if (isset($_GET['content'])) {
-      $this->show_content($this->path->full); // Exits
+      return $this->show_content($this->path->full);
     }
 
-    $search = array("/%folder%/", "/%flash_player%/", "/%searchfield%/", "/%admin%/", "/%version%/");
-    $replace = array(addslashes($this->path->relative), $this->html_flashplayer(), $this->html_searchfield(),
+    $search = array("/%folder%/", "/%searchfield%/", "/%admin%/", "/%version%/");
+    $replace = array(addslashes($this->path->relative), $this->html_searchfield(),
         $this->html_admin(), VERSION);
 
     $template = implode("", file($this->template));
-    print preg_replace($search, $replace, $template);
-    exit(0);
+    return preg_replace($search, $replace, $template);
   }
 
   /**
-   * Content for a page (JSON).  Exits.
+   * Content for a page (JSON).
    */
   function show_content($fullPath) {
-      $entries = $this->list_folder($fullPath, $this->hideItems);
-      $byInitial = $this->items_by_initial($entries);
-      $groupedItems = $this->group_items($byInitial, $this->headingThreshold);
-      $content = $this->html_folder($groupedItems);
+    $entries = $this->list_folder($fullPath, $this->hideItems);
+    $byInitial = $this->items_by_initial($entries);
+    $groupedItems = $this->group_items($byInitial, $this->headingThreshold);
+    $content = $this->html_folder($groupedItems);
 
-      $result = array();
-      $result['content'] = '<table width="100%">' . $content . "</table>";
-      $result['cover'] = $this->html_cover();
-      $result['breadcrumb'] = $this->html_breadcrumb();
-      $result['options'] = $this->html_options();
-      if (!empty($this->path->relative)) {
-        $result['title'] = $this->homeName .": ". $this->path->relative;
-      } else {
-        $result['title'] = $this->homeName;
-      }
-      $result['error'] = Logger::pop();
-      
-      print $this->json_encode($result);
-      exit(0);
+    $result = array();
+    $result['content'] = '<table width="100%">' . $content . "</table>";
+    $result['cover'] = $this->html_cover();
+    $result['breadcrumb'] = $this->html_breadcrumb();
+    $result['options'] = $this->html_options();
+    if (!empty($this->path->relative)) {
+      $result['title'] = $this->homeName .": ". $this->path->relative;
+    } else {
+      $result['title'] = $this->homeName;
+    }
+    $result['streamType'] = $this->streamType;
+    $result['error'] = Logger::pop();
+    
+    return $this->json_encode($result);
   }
 
   /**
@@ -256,7 +258,7 @@ class MusicBrowser {
 
 
   /**
-   * Search results (JSON).  Exits.
+   * Search results (JSON).
    *
    * @param Url url Url Object
    * @param Path path Path Object
@@ -270,7 +272,7 @@ class MusicBrowser {
     $content = "<ul class=searchresult>\n";
     foreach ($searchresult as $entry) {
       $entry = preg_replace("/[\r\n]/", "", $entry);
-      $item = new Item($entry, $this->charset, false, $this->path, $this->url, $this->streamtype, $this->shuffle);
+      $item = new Item($entry, $this->charset, false, $this->path, $this->url, $this->streamType, $this->shuffle);
 
       if (is_dir($this->path->root . "/$entry")) {
         $content .= '<li>' . $item->dir_link() . '</li>\n';
@@ -285,38 +287,24 @@ class MusicBrowser {
      . "<br> <a class=folder href=\"javascript:previousDir()\">[go back]</a>\n";
     $result['error'] = Logger::pop();
     $result['title'] = $this->homeName . ": search for \"" . $needle . "\"";
-    print $this->json_encode($result);
-    exit(0);
+    return $this->json_encode($result);
   }
 
   function show_streamtype() {
     $this->resolve_streamtype_and_shuffle();
-    $result['streamtype'] = $this->streamtype;
+    $result['streamType'] = $this->streamType;
     $result['shuffle'] = $this->shuffle;
     $result['error'] = Logger::pop();
-    print $this->json_encode($result);
-    exit(0);
+    return $this->json_encode($result);
   }
 
   /**
-   * Rebuilds search database (JSON). Exits.
+   * Rebuilds search database.
    */
   function show_builddb($rootPath) {
     $result = array();
     $this->build_searchdb($rootPath);
-    $this->show_messages(); //Exits
-  }
-
-  /**
-   * @return string The HTML that is required to display the flash player.
-   */
-  function html_flashplayer() {
-    if (in_array(FLASH, $this->enabledPlay)) {
-      return '<div id="player">JW FLV Player</div>
-        <script type="text/javascript">
-          jwObject().write(\'player\');
-        </script>';
-    }
+    return;
   }
 
   /**
@@ -383,11 +371,13 @@ class MusicBrowser {
     foreach ($this->enabledPlay as $list) {
       $select[$list] = "";
     }
-    if (array_key_exists($this->streamtype, $select)) {
-      $select[$this->streamtype] = 'SELECTED';
+    if (array_key_exists($this->streamType, $select)) {
+      $select[$this->streamType] = 'SELECTED';
     }
     $pathEncoded = Util::path_encode($this->path->relative);
-    $output = "<span class=feet>Play as <select name=streamtype onChange=\"setStreamtype('" . $pathEncoded . "', options[this.selectedIndex].value)\">";
+    $output = "<span class=feet>Play as <select name=streamType onChange=\"setStreamType('" . $pathEncoded
+            . "', options[this.selectedIndex].value)\">";
+
     foreach ($select as $type => $checked) {
       switch ($type) {
         case SERVER:
@@ -427,7 +417,7 @@ class MusicBrowser {
     $group = array();
     foreach ($entries as $plainItem) {
         $item = new Item($plainItem, $this->charset, $this->folderCovers, 
-          $this->path, $this->url, $this->streamtype, $this->shuffle);
+          $this->path, $this->url, $this->streamType, $this->shuffle);
         $index = " " . $item->sort_index();
         if (!isset($group[$index])) {
           $group[$index] = array();
@@ -494,7 +484,7 @@ class MusicBrowser {
     $cookie = split(":", @ $_COOKIE['musicbrowser']);
     $setcookie = false;
 
-    $streamType = @ $_GET['streamtype'];
+    $streamType = @ $_GET['streamType'];
     if (in_array($streamType, $this->enabledPlay)) {
       $setcookie = true;
     } else if (isset($cookie[0])) {
@@ -517,7 +507,7 @@ class MusicBrowser {
     if ($setcookie) {
       setcookie('musicbrowser', "$streamType:$shuffle");
     }
-    $this->streamtype = $streamType;
+    $this->streamType = $streamType;
     $this->shuffle = $shuffle;
   }
 
@@ -553,6 +543,7 @@ class MusicBrowser {
       $currentPath .= "/{$parts[$i]}";
       $encodedPath = Util::path_encode($currentPath);
       $displayItem = Util::convert_to_utf8($parts[$i], $this->charset);
+      $displayItem = Util::word_wrap($displayItem, $this->charset);
       if ($i < count($parts) - 1) {
         $encodedPath = Util::js_url($encodedPath);
         $items[] = "<a class=path href=\"javascript:changeDir('$encodedPath')\">$displayItem</a>\n";
@@ -563,10 +554,10 @@ class MusicBrowser {
     $output = implode(" &nbsp;&raquo;&nbsp;", $items);
 
     # Output "play all"
-    $playUrl = Util::play_url($encodedPath, $this->streamtype, $this->shuffle);
+    $playUrl = Util::play_url($encodedPath, $this->streamType, $this->shuffle);
     $output .= "&nbsp;&nbsp;<a href=\"$playUrl\"><img
-      src=\"play.gif\" border=0 title=\"Play all songs in this folder as " . $this->streamtype . "\"
-      alt=\"Play all songs in this folder as " . $this->streamtype . "\"></a>";
+      src=\"play.gif\" border=0 title=\"Play all songs in this folder as " . $this->streamType . "\"
+      alt=\"Play all songs in this folder as " . $this->streamType . "\"></a>";
     return $output;
   }
 
@@ -607,16 +598,6 @@ class MusicBrowser {
    * Stream folder or file.
    */
   function stream($type, $shuffle) {
-    if ($type == SLIM && $this->allowLocal) {
-      $this->play_slimserver($this->path->relative);
-      return;
-    }
-    
-    if ($type == XBMC && $this->allowLocal) {
-      $this->play_xbmc($this->path->relative);
-      return;
-    }
-    
     $name = Util::pathinfo_basename($this->path->full);
     if (empty($name)) $name = "playlist";
     $items = array();
@@ -635,6 +616,25 @@ class MusicBrowser {
        Logger::log("No files to play in <b>$name</b>");
        return;
     }
+
+    switch ($type) {
+      case SLIM:
+        if ($this->allowLocal) {
+          return $this->play_slimserver($this->path->relative);
+        }
+        return;
+      case XBMC:
+        if ($this->allowLocal) {
+          return $this->play_xbmc($this->path->relative);
+        }
+        return;
+      case NATIVE:
+        $result = array('url' => $this->url->full . "?stream=m3u&path="
+                               . Util::path_encode($this->path->relative, false),
+                        'title' => array_pop(split("/", $this->path->relative)));
+        return $this->json_encode($result);
+    }
+
     $entries = array();
     $withTimestamp = false;
     $withLength = false;
@@ -654,14 +654,11 @@ class MusicBrowser {
         if (!empty($coverImage)) {
           $image = $this->url->root . "/$coverImage";
         }
-        $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
-        break;
+        return $this->streamLib->playlist_rss($entries, $name, $url, $image, $this->charset);
       case M3U:
-        $this->streamLib->playlist_m3u($entries, $name);
-        break;
+        return $this->streamLib->playlist_m3u($entries, $name);
       case PLS:
-        $this->streamLib->playlist_pls($entries, $name);
-        break;
+        return $this->streamLib->playlist_pls($entries, $name);
       case XSPF:
         $url = $this->url->full . "?path=" . Util::path_encode($this->path->relative);
         $coverImage = $this->path->cover_image();
@@ -669,17 +666,15 @@ class MusicBrowser {
         if (!empty($coverImage)) {
           $image = $this->url->root . "/$coverImage";
         }
-        $this->streamLib->playlist_xspf($entries, $name, $url, $image, $this->charset);
-        break;
+        return $this->streamLib->playlist_xspf($entries, $name, $url, $image, $this->charset);
       case ASX:
       case FLASH:
-        $this->streamLib->playlist_asx($entries, $name, $this->charset);
-        break;
+        return $this->streamLib->playlist_asx($entries, $name, $this->charset);
       case SERVER:
         if ($this->allowLocal) {
-          $this->play_server($items);
+          return $this->play_server($items);
         }
-        break;
+        return;
     }
   }
 
@@ -717,7 +712,7 @@ class MusicBrowser {
   }
 
   /**
-   * Play an item on XBMC. Exits.
+   * Play an item on XBMC.
    * @param string $item Item to play
    */
   function play_xbmc($item) {
@@ -733,11 +728,11 @@ class MusicBrowser {
       $data = $this->invoke_xbmc("PlaylistNext");
     }
     $data = $this->invoke_xbmc("GetPlayListContents", "0");
-    $this->show_messages(); //Exits
+    return;
   }
   
   /**
-   * Play item(s) on the local server.  Exits.  This server uses system() and might be VERY UNSAFE!
+   * Play item(s) on the local server.  This server uses system() and might be VERY UNSAFE!
    * @param array $items Array of items to play
    */
   function play_server($items) {
@@ -751,11 +746,11 @@ class MusicBrowser {
     } else {
       Logger::log("Error playing file(s) on server.  Check the error log.");
     }
-    $this->show_messages(); //Exits
+    return;
   }
 
   /**
-   * Play item on Slimserver.  Exits.
+   * Play item on Slimserver.
    * @param string $item Item to play
    */
   function play_slimserver($item) {
@@ -768,18 +763,17 @@ class MusicBrowser {
     } else {
      Logger::log("Playing requested file(s) on Squeezebox");
     }
-    $this->show_messages(); //Exits
+    return;
   }
   
   /**
-   * Delivers messages as JSON and exits.
+   * Returns messages as JSON.
    */
   function show_messages() {
     $result = array();
     $msg = Logger::pop();
     $result['error'] = $msg;
-    print $this->json_encode($result);
-    exit(0);
+    return $this->json_encode($result);
   }
 
   /**
@@ -1025,13 +1019,13 @@ class Item {
   var $path;
   var $url;
 
-  function Item($item, $charset, $folderCovers, $path, $url, $streamtype, $shuffle) {
+  function Item($item, $charset, $folderCovers, $path, $url, $streamType, $shuffle) {
     $this->item = $item;  
     $this->charset = $charset;
     $this->folderCovers = $folderCovers;
     $this->path = $path;
     $this->url = $url;
-    $this->streamtype = $streamtype;
+    $this->streamType = $streamType;
     $this->shuffle = $shuffle;
   } 
   
@@ -1069,7 +1063,7 @@ class Item {
   
   function dir_link() {
     $image = $this->show_folder_cover($this->item);
-    $link = Util::play_url($this->url_path(), $this->streamtype, $this->shuffle);
+    $link = Util::play_url($this->url_path(), $this->streamType, $this->shuffle);
     $jsurl = $this->js_url_path();
     $item = $this->display_item();
     
@@ -1080,7 +1074,7 @@ class Item {
   
   function file_link() {
     $download = $this->direct_link($this->path->relative . "/" . $this->item);
-    $link = Util::play_url($this->url_path(), $this->streamtype, $this->shuffle);
+    $link = Util::play_url($this->url_path(), $this->streamType, $this->shuffle);
     $item = $this->display_item();
     
     return "<a href=\"$download\">"
@@ -1134,12 +1128,12 @@ class Util {
      return preg_replace($search, $replace, rawurlencode($path)); 
   }
   
-  function play_url($urlPath, $streamtype, $shuffle) {
-    if ($streamtype == FLASH || $streamtype == SLIM || $streamtype == SERVER || $streamtype == XBMC) {
+  function play_url($urlPath, $streamType, $shuffle) {
+    if ($streamType == FLASH || $streamType == SLIM || $streamType == SERVER || $streamType == XBMC || $streamType == NATIVE) {
        $urlPath = Util::js_url($urlPath);
        return "javascript:play('$urlPath')";
     }
-    return "index.php?path=" . $urlPath . "&amp;shuffle=" . $shuffle . "&amp;stream=" . $streamtype;
+    return "index.php?path=" . $urlPath . "&amp;shuffle=" . $shuffle . "&amp;stream=" . $streamType;
   }
 
   function strip($str) {
@@ -1203,7 +1197,7 @@ class StreamLib {
      }
      $output .= "</asx>\r\n";
      
-     $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
+     return $this->stream_content($output, "$name.asx", "audio/x-ms-asf");
   }
 
 
@@ -1225,7 +1219,7 @@ class StreamLib {
      
      $output .= "Version=2\r\n";
      
-     $this->stream_content($output, "$name.pls", "audio/x-scpls");
+     return $this->stream_content($output, "$name.pls", "audio/x-scpls");
   }
 
   /**
@@ -1239,7 +1233,7 @@ class StreamLib {
                . "{$entry['url']}\r\n";
     }
      
-    $this->stream_content($output, "$name.m3u", "audio/x-mpegurl");
+    return $this->stream_content($output, "$name.m3u", "audio/x-mpegurl");
   }
 
   /**
@@ -1272,7 +1266,7 @@ class StreamLib {
                . "  </item>\r\n";
     }
     $output .= "</channel></rss>\r\n";
-    $this->stream_content($output, "$name.rss", "application/xml", "inline");
+    return $this->stream_content($output, "$name.rss", "application/xml", "inline");
   }
 
   /**
@@ -1302,23 +1296,9 @@ class StreamLib {
     }
     $output .= "  </trackList>\r\n"
              . "</playlist>\r\n";
-    $this->stream_content($output, "$name.xspf", "application/xspf+xml", "inline");
+    return $this->stream_content($output, "$name.xspf", "application/xspf+xml", "inline");
   }
 
-
-  /**
-   * @param array $entries Array of arrays with keys url, title
-   * @param string $name Stream name
-   */
-  function stream_show_entries($entries, $name = "playlist") {
-    $output = "<html><head><title>$name</title></head><body><ul>";
-    foreach ($entries as $entry) {
-      $output .= "<li><a href=\"{$entry['url']}\">{$entry['title']}</a>\n";
-    }
-    $output .= "</ul></body></html>";
-    print $output;
-    exit(0);
-  }
 
   /**
    * @param string $content Content to stream
@@ -1329,8 +1309,7 @@ class StreamLib {
      header("Content-Disposition: $disposition; filename=\"$name\"", true);
      header("Content-Type: $mimetype", true);
      header("Content-Length: " . strlen($content));
-     print $content;
-     exit(0);
+     return $content;
   }
 
   /**
@@ -1400,8 +1379,7 @@ class StreamLib {
      header("Content-Length: " . filesize($file));
      if ($isAttachment) header("Content-Disposition: attachment; filename=\"$filename\"", true);
 
-     $this->readfile_chunked($file);
-     exit(0);
+     return $this->readfile_chunked($file);
   }
 
   /**

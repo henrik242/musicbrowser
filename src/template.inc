@@ -25,7 +25,7 @@ Copyright 2006-2008 Henrik Brautaset Aronsen
   <style type="text/css">
     <!--
     body { margin: 0; padding: 150px 0 25px 0; color: #000; background: #fff; 
-        	 font-family: Times New Roman, Times, serif;  font-size: 1em; }
+        	 font-family: 'Times New Roman', Times, serif;  font-size: 1em; }
     div#header { width: 100%; height: 150px; position: absolute; top: 0; left: 0; color: #000; background:  #91AA9D; padding: 0px; }
     div#footer { overflow: auto; width: 100%; height: 25px; position: absolute; bottom: 0; left: 0; 
         	 color: #000; background: #91AA9D; padding: 1px; font-size: 0.8em; }
@@ -60,6 +60,7 @@ Copyright 2006-2008 Henrik Brautaset Aronsen
     .error { color: red; }
     .feet { text-decoration: none; padding-right: 10px; padding-left: 10px; }
     .searchresult {list-style-type: none; padding-top: 10px; padding-right: 20px; margin: 0px; }
+    #batplay { padding: 5px; background-color: #ffffff; margin-top: 10px; }
     -->
   </style>
 
@@ -82,7 +83,7 @@ Copyright 2006-2008 Henrik Brautaset Aronsen
     <div id="breadcrumb"></div>
     <div id="cover"></div>
   </div>
-  <div id="rightheader">%flash_player%</div>
+  <div id="rightheader"><div id="player"></div></div>
 </div>
 
 <div id="content">

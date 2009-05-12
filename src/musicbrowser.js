@@ -72,8 +72,9 @@ function updateDirectory(path) {
 /**
  * Set stream type.
  */
-function setStreamtype(path, streamtype) {
-  fetchContent(path.replace('&', '%26') +  '&streamtype=' + streamtype); 
+function setStreamType(path, streamType) {
+  fetchContent(path.replace('&', '%26') +  '&streamType=' + streamType);
+  
 }
 
 /**
@@ -103,6 +104,12 @@ function fetchContent(path) {
         document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
         document.getElementById('options').innerHTML = result.options;
         document.getElementById('content').innerHTML = result.content;
+
+        if (document.getElementById('jwp') == null && result.streamType == 'flash') {
+          jwObject().write('player'); // Only create flash player if it isn't there already
+        } else if (document.getElementById('batplay') == null && result.streamType == 'native') {
+          document.getElementById('player').innerHTML = '<div></div>';
+        }
       }
     }
   }
@@ -158,7 +165,7 @@ function search(needle) {
   if (!needle) {
     needle = document.getElementById('search').value;
     // Firefox and Safari don't agree on hash encoding
-    encodedNeedle = encodeURIComponent(needle);  //
+    encodedNeedle = encodeURIComponent(needle);
   }
   if (needle.length < 2) {
     showBox('<div class=error>Search term must be longer than 2 characters</div>', 3000);
@@ -401,7 +408,7 @@ function play(path) {
       if (result && result.error) {
         showBox('<div class=error>' + result.error + '</div>');
       } else if (result) {
-        var type = result.streamtype;
+        var type = result.streamType;
         var shuffle = result.shuffle;
         initiatePlay(path, type, shuffle);
       }
@@ -426,10 +433,33 @@ function initiatePlay(path, type, shuffle) {
       var result = jsonEval(http.responseText);
       if (result.error) {
         showBox('<div class=error>' + result.error + '</div>', 5000);
+      } else if (result && type == 'native') {
+        batPlay(result.title, result.url);
       }
     }
   }
   http.send(null);
+}
+
+/**
+ * Modified version of Batmosphere Embedded Media Player, version 2006-05-31
+ * Written by David Battino, www.batmosphere.com
+ * OK to use if this notice is included
+ */
+function batPlay(title, url) {
+  var objType = "audio/mpeg";  // The MIME type for Macs and Linux
+  if (navigator.userAgent.toLowerCase().indexOf("windows") != -1) {
+    objType = "application/x-mplayer2"; // The MIME type to load the WMP plugin in non-IE browsers on Windows
+  }
+  var player = "<div id='batplay'>Playing " + title + "<br>"
+   + "<object width='" + flashWidth + "' height='100'><param name='type' value='" + objType + "'>"
+   + "<param name='src' value='" + url + "'><param name='autostart' value='0'>"
+   + "<param name='showcontrols' value='1'><param name='showstatusbar' value='1'>"
+   + "<embed src ='" + url + "' type='" + objType + "' autoplay='true' autostart='1' width='" + flashWidth
+   + "' bgcolor='#ffffff' height='100' controller='1' showstatusbar='1'></embed>"
+   + "</object></div>";
+
+  document.getElementById('player').innerHTML = player;
 }
 
 /**

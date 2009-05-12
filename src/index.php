@@ -24,9 +24,20 @@ $config = array(
   'maxPlaylistSize' => 100,
 
   # Which play modes to enable, and the order they are shown in.
-  # May be one or more of FLASH, M3U, PLS, ASX, SLIM and SERVER.  SLIM and SERVER may be 
-  # disabled for remote users by the allowLocal setting even if they are enabled here.
-  'enabledPlay' => array(FLASH, M3U, PLS, ASX, XSPF, SLIM, SERVER, XBMC),
+  #
+  # May be one or more of:
+  #  FLASH - the embedded flash player
+  #  M3U - m3u playlist
+  #  PLS - pls playlist
+  #  ASX - asx playlist
+  #  XSPF - xspf playlist
+  #  NATIVE - play with the browser's native media player (usually Windows Media Player or Quicktime)  
+  #  SLIM - play remotely on SlimServer/SqueezeCenter
+  #  SERVER - play on the server's sound card
+  #  XBMC - play remotely on Xbmc Media Center
+  #
+  # SLIM and SERVER may be disabled for remote users by the allowLocal setting even if they are enabled here.
+  'enabledPlay' => array(FLASH, M3U, PLS, NATIVE),
   
   # Slimserver URL.  The root URL for slimserver "Music folder" streaming, e.g.
   #  'slimserverUrl' => 'http://myserver:9000'.  Leave blank to disable.

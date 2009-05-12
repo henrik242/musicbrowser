@@ -71,7 +71,8 @@ SqueezeCenter » Settings » Advanced » Security.
 Changelog
 ---------
 0.25-svn
-- ...
+- Made code easier to test
+- Added support for browers' native player.  Thanks to David Battino, www.batmosphere.com.
 
 0.24 (2009-05-12)
 - Bugfix (#2788788): Non-ascii characters didn't resolve well under Windows
@@ -82,7 +83,7 @@ Changelog
 - Bugfix: IE6 & 7 didn't know how to use string indexes
 - CSS template added.  Thanks to Henrie van der Locht for all help with this template.
 
-0.23 (2009-05-23)
+0.23 (2009-05-04)
 - Added a template by Henrie van der Locht.  Look at
   http://musicbrowser.svn.sourceforge.net/viewvc/musicbrowser/trunk/templates/henrie/ for details
 - Bugfix (#2785523): Url didn't resolve properly in some situations
