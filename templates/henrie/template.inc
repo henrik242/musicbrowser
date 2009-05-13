@@ -126,6 +126,7 @@ div#footer {
 .box { padding: 10px; background-color: #CCC; }
 .boxbutton { padding: 1px 5px; vertical-align: top; background-color: gray; color: white;  }
 .boxbutton:link { text-decoration: none;  }
+#batplay { padding: 5px; background-color: #ffffff; margin-top: 10px; }
 
 a { color: #2222AA; text-decoration: none; }
 a:hover { text-decoration: underline; }

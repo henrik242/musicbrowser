@@ -48,6 +48,7 @@ form { display: inline; }
 #content { text-align: left; }
 #breadcrumb { text-align: left; padding-bottom: 10px; }
 .searchresult {list-style-type: none}
+#batplay { padding: 5px; background-color: #ffffff; margin-top: 10px; }
 -->
   </style>
   <script type="text/javascript" src="musicbrowser.js"></script>
