@@ -43,7 +43,8 @@ echo
 echo -n "Tag release as $RELEASE to sourceforge (y/N)? "
 read i
 if [ "$i" = "y" ]; then
-  svn copy https://mingoto@musicbrowser.svn.sourceforge.net/svnroot/musicbrowser/{trunk,tags/$RELEASE}
+  git tag $RELEASE
+  git push --tags
 fi
 
 echo
