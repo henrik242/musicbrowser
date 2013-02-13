@@ -70,7 +70,7 @@ SqueezeCenter » Settings » Advanced » Security.
 
 Changelog
 ---------
-0.25-svn
+0.25
 - Made code easier to test
 - Added support for browers' native player.  Thanks to David Battino, www.batmosphere.com.
 

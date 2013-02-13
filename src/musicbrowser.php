@@ -30,7 +30,7 @@ define('XBMC', 'xbmc');
 define('XSPF', 'xspf');
 define('NATIVE', 'native');
 
-define('VERSION', '0.25-svn');
+define('VERSION', '0.25');
 
 class MusicBrowser {
   
