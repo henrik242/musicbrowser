@@ -1,7 +1,9 @@
+"use strict";
+
 var currentFolder = '';
 var currentHash = '###';
 var jwPlayerId = 'jwp';
-var prefix = 'index.php?path=';
+var prefix = 'mb.php/';
 var hotkeyModifier = false;
 var hotkeysDisabled = false;
 var flashWidth = 500;
@@ -18,7 +20,7 @@ window.onload = function() {
 /**
  * Poll the url hash regularly for changes.
  */
-function pollHash() {
+var pollHash = function() {
   var locationHash = window.location.hash.replace(/^#/, '');
   if (locationHash == currentHash) {
     return; // Nothing's changed since last polled. 
@@ -45,14 +47,14 @@ function pollHash() {
 /**
  * Change to previous directory.
  */
-function previousDir() {
+var previousDir = function() {
   history.go(-1);
 }
 
 /**
  * Change directory.
  */
-function changeDir(path) {
+var changeDir = function(path) {
   updateDirectory(path);
   updateHash('p', path);
 }
@@ -60,7 +62,7 @@ function changeDir(path) {
 /**
  * Update content tag with specified content from specified path.
  */
-function updateDirectory(path) {
+var updateDirectory = function(path) {
   document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
   currentFolder = path;
   fetchContent(path.replace('&', '%26'));
@@ -72,7 +74,7 @@ function updateDirectory(path) {
 /**
  * Set stream type.
  */
-function setStreamType(path, streamType) {
+var setStreamType = function(path, streamType) {
   fetchContent(path.replace('&', '%26') +  '&streamType=' + streamType);
   
 }
@@ -80,7 +82,7 @@ function setStreamType(path, streamType) {
 /**
  * Enable/disable shuffle.
  */
-function setShuffle(path) {
+var setShuffle = function(path) {
   var shuffle = document.getElementById('shuffle').checked;
   fetchContent(path.replace('&', '%26') + '&shuffle=' + shuffle); 
 }
@@ -88,22 +90,22 @@ function setShuffle(path) {
 /**
  * HTTP GET content from path.
  */
-function fetchContent(path) {  
-  var http = httpGet(prefix + path + "&content");
+var fetchContent = function(path) {  
+  var http = httpGet(prefix + path + ".json");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = jsonEval(http.responseText);
       if (!result) {
         document.getElementById('content').innerHTML = "<div class=error>Error.</div>";
       } else {
-        if (result.error != '') {
-          showBox('<div class=error>' + result.error + '</div>');
-        }
-        document.title = result.title;
-        document.getElementById('cover').innerHTML = result.cover;
-        document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
-        document.getElementById('options').innerHTML = result.options;
-        document.getElementById('content').innerHTML = result.content;
+        document.title = path;
+        document.getElementById('cover').innerHTML = createCoverImage(result.shift());
+        document.getElementById('breadcrumb').innerHTML = createBreadcrumbs(path);
+        //document.getElementById('options').innerHTML = result.options;
+        var contentDiv = $('#content');
+        contentDiv.html('');
+        var table = createHtml(result);
+        table.appendTo(contentDiv);
 
         if (document.getElementById('jwp') == null && result.streamType == 'flash') {
           jwObject().write('player'); // Only create flash player if it isn't there already
@@ -116,11 +118,72 @@ function fetchContent(path) {
   http.send(null);
 }
 
+var createBreadcrumbs = function(path) {
+  var folders = path.split("/");
+  var result = '<a href="#">Music</a>';
+  for (var i = 0; i < folders.length; i++) {
+    if (folders[i]) {
+      result += ' » <a href="#p=' + folders[i] + '">' + folders[i] + '</a>';
+    }
+  }
+  return result;
+}
+
+var createCoverImage = function(image) {
+  if (!image) {
+    return "";
+  }
+  return '<a href="javascript:showCover(\'' + image + '\')">' +
+         '<img width="100" height="100" border="0" align="left" src="' + image + '" alt="" title="View enlarged cover"></a>';
+}
+
+var createHtml = function(entries) {
+  var table = $('<table>');
+  table.append($('<thead>')).append($('<tbody>'));
+
+  var counter = 0;
+  var tr;
+  var rowclass;
+  for (var i = 0; i < entries.length; i++) {
+    if (counter === 0) {
+      if (rowclass === 'even') {
+        rowclass = 'odd';
+      } else {
+        rowclass = 'even';
+      }
+      tr = $('<tr>').addClass(rowclass).appendTo(table);
+    }
+    tr.append(createTd(entries[i]).addClass('cell'));
+
+    counter++;
+    if (counter === 5) {
+      counter = 0;
+    }
+  }
+
+  return table;
+}
+
+var createTd = function(value) {
+    if (value === null || value === 'null') {
+        value = '';
+    }
+    if (value.charAt(value.length-1) === "/") {
+      return $('<td>').html(
+      '<a href="javascript:play(\'' + value + '\')"><img border="0" alt="[Play]" title="Play this folder" src="play.gif"></img></a>' +
+      '<a class="folder" href="javascript:changeDir(\'' + value + '\')" title="' + value + '">&nbsp;' + value + '</a>');
+    }
+    return $('<td>').html(
+      '<a href="' + value + '"><img border="0" alt="[Download]" title="Download this song" src="download.gif"></img></a>' +
+      '<a class="file" href="javascript:play(\'' + value + '\')" title="Play this song">&nbsp;' + value + '</a>');
+};
+
+
 /**
  * HTTP GET.
  * @return HTTP object
  */
-function httpGet(fullPath) {
+var httpGet = function(fullPath) {
   var http = false;
   if (navigator.appName.indexOf('Microsoft') != -1) {
     http = new ActiveXObject("Microsoft.XMLHTTP");
@@ -134,7 +197,7 @@ function httpGet(fullPath) {
 /**
  * Enable search field, disable global hotkeys.
  */
-function enableSearch() {
+var enableSearch = function() {
   hotkeysDisabled = true;
   document.getElementById('search').value = '';
 }
@@ -142,7 +205,7 @@ function enableSearch() {
 /**
  * Disable search field, enable global hotkeys.
  */
-function disableSearch() {
+ var disableSearch = function() {
   hotkeysDisabled = false;
   document.getElementById('search').value = 'search';
 }
@@ -150,7 +213,7 @@ function disableSearch() {
 /**
  * Invoke search on keypress==return.
  */
-function invokeSearch(e) {
+var invokeSearch = function(e) {
   if (getKeyNum(e) == 13) {
     search();
   }
@@ -160,7 +223,7 @@ function invokeSearch(e) {
  * Search for file or folder.
  * @param needle Use this needle.  Uses search field from page if empty.
  */
-function search(needle) {
+var search = function(needle) {
   var encodedNeedle = needle;
   if (!needle) {
     needle = document.getElementById('search').value;
@@ -207,7 +270,7 @@ function search(needle) {
  * @param func Function, either 's' (search) or 'p' (path)
  * @param content Value in hash
  */
-function updateHash(func, content) {
+var updateHash = function(func, content) {
   if (content) {
     var tempHash = func + '=' + content;
     // Firefox and Safari don't agree on hash encoding
@@ -225,7 +288,7 @@ function updateHash(func, content) {
 /**
  * Rebuild search database.
  */
-function buildDB() {
+var buildDB = function() {
   var answer = confirm("Are you sure you want to rebuild the search database?");
   if (!answer) {
     showBox('<div class=error>Aborted...</div>', 3000);
@@ -247,14 +310,14 @@ function buildDB() {
 /**
  * Show album cover.
  */
-function showCover(picture) {
+var showCover = function(picture) {
   showBox('<img alt="" border=0 src="' + picture + '">');  
 }
 
 /**
  * Show flash player hotkeys.
  */
-function showHelp() {
+var showHelp = function() {
   showBox('Flash player hotkeys<br>'
       + '<b>p</b> - play or pause<br>'
       + '<b>b</b> - skip back<br>'
@@ -265,7 +328,7 @@ function showHelp() {
 /**
  * Show the dialogue.
  */
-function showBox(content, timeout) {
+var showBox = function(content, timeout) {
   document.getElementById('box').innerHTML 
     = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';
   if (timeout) {
@@ -278,14 +341,14 @@ function showBox(content, timeout) {
  * Hide the dialogue.
  * @see showBox()
  */
-function hideBox() {
+var hideBox = function() {
   document.getElementById('box').innerHTML = '';
 }
 
 /**
  * @return keynum from keypress
  */
-function getKeyNum(e) {
+var getKeyNum = function(e) {
   var keynum;
   if (window.event) { // IE
     keynum = e.keyCode;
@@ -298,7 +361,7 @@ function getKeyNum(e) {
 /**
  * Execute hotkey for flash player.
  */
-function hotkey(e) {
+var hotkey = function(e) {
   if (hotkeysDisabled) {
     return;
   }
@@ -322,8 +385,8 @@ function hotkey(e) {
 /**
  * Crude json evaluator.  Returns false if input isn't json.
  */
-function jsonEval(text) {
-  if (text.substr(0, 1) != '{') {
+var jsonEval = function(text) {
+  if (text.substr(0, 1) != '[') {
     showBox('<div class=error>Could not parse content.<br>'
       + escapeHTML(text.substr(0,180)) + '...</div>');
     return false;
@@ -335,7 +398,7 @@ function jsonEval(text) {
 /**
  * Escape HTML string.
  */
-function escapeHTML(str) {
+var escapeHTML = function(str) {
    var div = document.createElement('div');
    var text = document.createTextNode(str);
    div.appendChild(text);
@@ -345,7 +408,7 @@ function escapeHTML(str) {
 /**
  * @return Instance of the JW Flash Player
  */
-function jwPlayer() {
+var jwPlayer = function() {
   if (navigator.appName.indexOf("Microsoft") != -1) {
     return window[jwPlayerId];
   } else {
@@ -356,7 +419,7 @@ function jwPlayer() {
 /**
  * Play specified file or folder in the Flash Player.
  */
-function jwPlay(path, shuffle) {
+var jwPlay = function(path, shuffle) {
   var shuffleText = "";
   if (shuffle == 'true') { shuffleText = "&shuffle=true"; }
   var theFile = "{file:encodeURI('" + prefix + path + shuffleText + "&stream=flash')}";
@@ -377,7 +440,7 @@ function jwPlay(path, shuffle) {
 /**
  * @return A JW Flash Player SWF object
  */
-function jwObject() {
+var jwObject = function() {
   var so = new SWFObject('mediaplayer.swf', jwPlayerId, flashWidth, flashHeight, '8', "#FFFFFF");
   so.addParam('allowscriptaccess', 'always');
   so.addParam('allowfullscreen', 'false');
@@ -400,8 +463,8 @@ function jwObject() {
 /**
  * Play specified file or folder.
  */
-function play(path) {
-  var http = httpGet(prefix + path + "&showstreamtype");
+var play = function(path) {
+  var http = httpGet(prefix + path + "?showstreamtype");
   http.onreadystatechange = function() {
     if (http.readyState == 4) {
       var result = jsonEval(http.responseText);
@@ -420,7 +483,7 @@ function play(path) {
 /**
  * Initiate playback.
  */
-function initiatePlay(path, type, shuffle) {
+var initiatePlay = function(path, type, shuffle) {
   if (type == 'flash') {
     jwPlay(path, shuffle);
     return;
@@ -446,7 +509,7 @@ function initiatePlay(path, type, shuffle) {
  * Written by David Battino, www.batmosphere.com
  * OK to use if this notice is included
  */
-function batPlay(title, url) {
+var batPlay = function(title, url) {
   var objType = "audio/mpeg";  // The MIME type for Macs and Linux
   if (navigator.userAgent.toLowerCase().indexOf("windows") != -1) {
     objType = "application/x-mplayer2"; // The MIME type to load the WMP plugin in non-IE browsers on Windows
