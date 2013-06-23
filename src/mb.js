@@ -63,12 +63,12 @@ var changeDir = function(path) {
  * Update content tag with specified content from specified path.
  */
 var updateDirectory = function(path) {
-  document.getElementById('content').innerHTML = "<div class=loading>loading...</div>";
+  $('#content').html("<div class=loading>loading...</div>");
   currentFolder = path;
   fetchContent(path.replace('&', '%26'));
-  document.getElementById('podcast').href =  prefix + path + '&stream=rss';
-  document.getElementById('podcast').title = prefix + path.replace(/\+/g, ' ') + ' podcast';
-  document.getElementById('podcast').innerHTML = 'podcast';
+  $('#podcast').attr('href', prefix + path + '&stream=rss');
+  $('#podcast').attr('title', prefix + path.replace(/\+/g, ' ') + ' podcast');
+  $('#podcast').html('podcast');
 }
 
 /**
@@ -83,7 +83,7 @@ var setStreamType = function(path, streamType) {
  * Enable/disable shuffle.
  */
 var setShuffle = function(path) {
-  var shuffle = document.getElementById('shuffle').checked;
+  var shuffle = $('#shuffle').prop('checked');
   fetchContent(path.replace('&', '%26') + '&shuffle=' + shuffle); 
 }
 
@@ -96,21 +96,21 @@ var fetchContent = function(path) {
     if (http.readyState == 4) {
       var result = jsonEval(http.responseText);
       if (!result) {
-        document.getElementById('content').innerHTML = "<div class=error>Error.</div>";
+        $('#content').html("<div class=error>Error.</div>");
       } else {
         document.title = path;
-        document.getElementById('cover').innerHTML = createCoverImage(result.shift());
-        document.getElementById('breadcrumb').innerHTML = createBreadcrumbs(path);
-        //document.getElementById('options').innerHTML = result.options;
+        $('#cover').html(createCoverImage(result.shift()));
+        $('#breadcrumb').html(createBreadcrumbs(path));
+        //$('#options').html(result.options);
         var contentDiv = $('#content');
         contentDiv.html('');
         var table = createHtml(result);
         table.appendTo(contentDiv);
 
-        if (document.getElementById('jwp') == null && result.streamType == 'flash') {
+        if ($('#jwp') == null && result.streamType == 'flash') {
           jwObject().write('player'); // Only create flash player if it isn't there already
-        } else if (document.getElementById('batplay') == null && result.streamType == 'native') {
-          document.getElementById('player').innerHTML = '<div></div>';
+        } else if ($('#batplay') == null && result.streamType == 'native') {
+          $('#player').html('<div></div>');
         }
       }
     }
@@ -138,7 +138,7 @@ var createCoverImage = function(image) {
 }
 
 var createHtml = function(entries) {
-  var table = $('<table>');
+  var table = $('<table>').attr('width', '100%');
   table.append($('<thead>')).append($('<tbody>'));
 
   var counter = 0;
@@ -168,14 +168,20 @@ var createTd = function(value) {
     if (value === null || value === 'null') {
         value = '';
     }
+    var displayValue = value;
+    var elements = value.replace(/\/$/, '').split('/');
+    console.debug(elements);
+    if (elements.length > 1) {
+      displayValue = elements[elements.length - 1];
+    }
     if (value.charAt(value.length-1) === "/") {
       return $('<td>').html(
-      '<a href="javascript:play(\'' + value + '\')"><img border="0" alt="[Play]" title="Play this folder" src="play.gif"></img></a>' +
-      '<a class="folder" href="javascript:changeDir(\'' + value + '\')" title="' + value + '">&nbsp;' + value + '</a>');
+        '<a href="javascript:play(\'' + value + '\')"><img border="0" alt="[Play]" title="Play this folder" src="play.gif"></img></a>' +
+        '<a class="folder" href="javascript:changeDir(\'' + value + '\')" title="' + displayValue + '">&nbsp;' + displayValue + '</a>');
     }
     return $('<td>').html(
       '<a href="' + value + '"><img border="0" alt="[Download]" title="Download this song" src="download.gif"></img></a>' +
-      '<a class="file" href="javascript:play(\'' + value + '\')" title="Play this song">&nbsp;' + value + '</a>');
+      '<a class="file" href="javascript:play(\'' + value + '\')" title="Play this song">&nbsp;' + displayValue + '</a>');
 };
 
 
@@ -199,7 +205,7 @@ var httpGet = function(fullPath) {
  */
 var enableSearch = function() {
   hotkeysDisabled = true;
-  document.getElementById('search').value = '';
+  $('#search').val('');
 }
 
 /**
@@ -207,7 +213,7 @@ var enableSearch = function() {
  */
  var disableSearch = function() {
   hotkeysDisabled = false;
-  document.getElementById('search').value = 'search';
+  $('#search').val('search');
 }
 
 /**
@@ -226,7 +232,7 @@ var invokeSearch = function(e) {
 var search = function(needle) {
   var encodedNeedle = needle;
   if (!needle) {
-    needle = document.getElementById('search').value;
+    needle = $('#search').val();
     // Firefox and Safari don't agree on hash encoding
     encodedNeedle = encodeURIComponent(needle);
   }
@@ -247,15 +253,15 @@ var search = function(needle) {
       } else if (result) {
         if (result.numresults > 0) {
           document.title = result.title;
-          document.getElementById('content').innerHTML = result.content;
-          document.getElementById('breadcrumb').innerHTML = result.breadcrumb;
-          document.getElementById('cover').innerHTML = '';
+          $('#content').html(result.content);
+          $('#breadcrumb').html(result.breadcrumb);
+          $('#cover').html('');
 
           // I should enable options and podcasts for searches as well:
-          document.getElementById('options').innerHTML = '';
-          document.getElementById('podcast').href = '#';
-          document.getElementById('podcast').title = '';
-          document.getElementById('podcast').innerHTML = '';
+          $('#options').html('');
+          $('#podcast').attr('href', '#');
+          $('#podcast').attr('title', '');
+          $('#podcast').html('');
         }
         var seconds = new Date().getSeconds() - startTime;
         showBox('Found ' + result.numresults + ' results in ' + seconds + ' seconds.', 3000);
@@ -329,8 +335,7 @@ var showHelp = function() {
  * Show the dialogue.
  */
 var showBox = function(content, timeout) {
-  document.getElementById('box').innerHTML 
-    = '<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>';
+  $('#box').html('<a class=boxbutton href="javascript:hideBox()">×</a><div class=box>' + content + '</div>');
   if (timeout) {
     clearTimeout(boxTimeout);
     boxTimeout = setTimeout(hideBox, timeout);
@@ -342,7 +347,7 @@ var showBox = function(content, timeout) {
  * @see showBox()
  */
 var hideBox = function() {
-  document.getElementById('box').innerHTML = '';
+  $('#box').html('');
 }
 
 /**
@@ -522,7 +527,7 @@ var batPlay = function(title, url) {
    + "' bgcolor='#ffffff' height='100' controller='1' showstatusbar='1'></embed>"
    + "</object></div>";
 
-  document.getElementById('player').innerHTML = player;
+  $('#player').html(player);
 }
 
 /**
@@ -533,3 +538,6 @@ var batPlay = function(title, url) {
  *
  */
 if(typeof deconcept=="undefined"){var deconcept={};}if(typeof deconcept.util=="undefined"){deconcept.util={};}if(typeof deconcept.SWFObjectUtil=="undefined"){deconcept.SWFObjectUtil={};}deconcept.SWFObject=function(_1,id,w,h,_5,c,_7,_8,_9,_a){if(!document.getElementById){return;}this.DETECT_KEY=_a?_a:"detectflash";this.skipDetect=deconcept.util.getRequestParameter(this.DETECT_KEY);this.params={};this.variables={};this.attributes=[];if(_1){this.setAttribute("swf",_1);}if(id){this.setAttribute("id",id);}if(w){this.setAttribute("width",w);}if(h){this.setAttribute("height",h);}if(_5){this.setAttribute("version",new deconcept.PlayerVersion(_5.toString().split(".")));}this.installedVer=deconcept.SWFObjectUtil.getPlayerVersion();if(!window.opera&&document.all&&this.installedVer.major>7){if(!deconcept.unloadSet){deconcept.SWFObjectUtil.prepUnload=function(){__flash_unloadHandler=function(){};__flash_savedUnloadHandler=function(){};window.attachEvent("onunload",deconcept.SWFObjectUtil.cleanupSWFs);};window.attachEvent("onbeforeunload",deconcept.SWFObjectUtil.prepUnload);deconcept.unloadSet=true;}}if(c){this.addParam("bgcolor",c);}var q=_7?_7:"high";this.addParam("quality",q);this.setAttribute("useExpressInstall",false);this.setAttribute("doExpressInstall",false);var _c=(_8)?_8:window.location;this.setAttribute("xiRedirectUrl",_c);this.setAttribute("redirectUrl","");if(_9){this.setAttribute("redirectUrl",_9);}};deconcept.SWFObject.prototype={useExpressInstall:function(_d){this.xiSWFPath=!_d?"expressinstall.swf":_d;this.setAttribute("useExpressInstall",true);},setAttribute:function(_e,_f){this.attributes[_e]=_f;},getAttribute:function(_10){return this.attributes[_10]||"";},addParam:function(_11,_12){this.params[_11]=_12;},getParams:function(){return this.params;},addVariable:function(_13,_14){this.variables[_13]=_14;},getVariable:function(_15){return this.variables[_15]||"";},getVariables:function(){return this.variables;},getVariablePairs:function(){var _16=[];var key;var _18=this.getVariables();for(key in _18){_16[_16.length]=key+"="+_18[key];}return _16;},getSWFHTML:function(){var _19="";if(navigator.plugins&&navigator.mimeTypes&&navigator.mimeTypes.length){if(this.getAttribute("doExpressInstall")){this.addVariable("MMplayerType","PlugIn");this.setAttribute("swf",this.xiSWFPath);}_19="<embed type=\"application/x-shockwave-flash\" src=\""+this.getAttribute("swf")+"\" width=\""+this.getAttribute("width")+"\" height=\""+this.getAttribute("height")+"\" style=\""+(this.getAttribute("style")||"")+"\"";_19+=" id=\""+this.getAttribute("id")+"\" name=\""+this.getAttribute("id")+"\" ";var _1a=this.getParams();for(var key in _1a){_19+=[key]+"=\""+_1a[key]+"\" ";}var _1c=this.getVariablePairs().join("&");if(_1c.length>0){_19+="flashvars=\""+_1c+"\"";}_19+="/>";}else{if(this.getAttribute("doExpressInstall")){this.addVariable("MMplayerType","ActiveX");this.setAttribute("swf",this.xiSWFPath);}_19="<object id=\""+this.getAttribute("id")+"\" classid=\"clsid:D27CDB6E-AE6D-11cf-96B8-444553540000\" width=\""+this.getAttribute("width")+"\" height=\""+this.getAttribute("height")+"\" style=\""+(this.getAttribute("style")||"")+"\">";_19+="<param name=\"movie\" value=\""+this.getAttribute("swf")+"\" />";var _1d=this.getParams();for(var key in _1d){_19+="<param name=\""+key+"\" value=\""+_1d[key]+"\" />";}var _1f=this.getVariablePairs().join("&");if(_1f.length>0){_19+="<param name=\"flashvars\" value=\""+_1f+"\" />";}_19+="</object>";}return _19;},write:function(_20){if(this.getAttribute("useExpressInstall")){var _21=new deconcept.PlayerVersion([6,0,65]);if(this.installedVer.versionIsValid(_21)&&!this.installedVer.versionIsValid(this.getAttribute("version"))){this.setAttribute("doExpressInstall",true);this.addVariable("MMredirectURL",escape(this.getAttribute("xiRedirectUrl")));document.title=document.title.slice(0,47)+" - Flash Player Installation";this.addVariable("MMdoctitle",document.title);}}if(this.skipDetect||this.getAttribute("doExpressInstall")||this.installedVer.versionIsValid(this.getAttribute("version"))){var n=(typeof _20=="string")?document.getElementById(_20):_20;n.innerHTML=this.getSWFHTML();return true;}else{if(this.getAttribute("redirectUrl")!=""){document.location.replace(this.getAttribute("redirectUrl"));}}return false;}};deconcept.SWFObjectUtil.getPlayerVersion=function(){var _23=new deconcept.PlayerVersion([0,0,0]);if(navigator.plugins&&navigator.mimeTypes.length){var x=navigator.plugins["Shockwave Flash"];if(x&&x.description){_23=new deconcept.PlayerVersion(x.description.replace(/([a-zA-Z]|\s)+/,"").replace(/(\s+r|\s+b[0-9]+)/,".").split("."));}}else{if(navigator.userAgent&&navigator.userAgent.indexOf("Windows CE")>=0){var axo=1;var _26=3;while(axo){try{_26++;axo=new ActiveXObject("ShockwaveFlash.ShockwaveFlash."+_26);_23=new deconcept.PlayerVersion([_26,0,0]);}catch(e){axo=null;}}}else{try{var axo=new ActiveXObject("ShockwaveFlash.ShockwaveFlash.7");}catch(e){try{var axo=new ActiveXObject("ShockwaveFlash.ShockwaveFlash.6");_23=new deconcept.PlayerVersion([6,0,21]);axo.AllowScriptAccess="always";}catch(e){if(_23.major==6){return _23;}}try{axo=new ActiveXObject("ShockwaveFlash.ShockwaveFlash");}catch(e){}}if(axo!=null){_23=new deconcept.PlayerVersion(axo.GetVariable("$version").split(" ")[1].split(","));}}}return _23;};deconcept.PlayerVersion=function(_29){this.major=_29[0]!=null?parseInt(_29[0]):0;this.minor=_29[1]!=null?parseInt(_29[1]):0;this.rev=_29[2]!=null?parseInt(_29[2]):0;};deconcept.PlayerVersion.prototype.versionIsValid=function(fv){if(this.major<fv.major){return false;}if(this.major>fv.major){return true;}if(this.minor<fv.minor){return false;}if(this.minor>fv.minor){return true;}if(this.rev<fv.rev){return false;}return true;};deconcept.util={getRequestParameter:function(_2b){var q=document.location.search||document.location.hash;if(_2b==null){return q;}if(q){var _2d=q.substring(1).split("&");for(var i=0;i<_2d.length;i++){if(_2d[i].substring(0,_2d[i].indexOf("="))==_2b){return _2d[i].substring((_2d[i].indexOf("=")+1));}}}return "";}};deconcept.SWFObjectUtil.cleanupSWFs=function(){var _2f=document.getElementsByTagName("OBJECT");for(var i=_2f.length-1;i>=0;i--){_2f[i].style.display="none";for(var x in _2f[i]){if(typeof _2f[i][x]=="function"){_2f[i][x]=function(){};}}}};if(!document.getElementById&&document.all){document.getElementById=function(id){return document.all[id];};}var getQueryParamValue=deconcept.util.getRequestParameter;var FlashObject=deconcept.SWFObject;var SWFObject=deconcept.SWFObject;
+
+
+
