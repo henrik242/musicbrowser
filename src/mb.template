@@ -59,6 +59,7 @@ Copyright 2006-2013 Henrik Brautaset Aronsen
     -->
   </style>
   <script type="text/javascript" src="jquery-latest.min.js"></script>
+  <script type="text/javascript" src="jwplayer.min.js"></script>
   <script type="text/javascript" src="mb.js"></script>
 </head>
 <body>
