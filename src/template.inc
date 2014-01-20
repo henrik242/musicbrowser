@@ -1,3 +1,4 @@
+<!--[if lte IE 6]><!-- quirksmode --><![endif]-->
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <!--
 This file is part of Music Browser.
@@ -15,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Music Browser.  If not, see <http://www.gnu.org/licenses/>.
 
-Copyright 2006-2013 Henrik Brautaset Aronsen
+Copyright 2006-2008 Henrik Brautaset Aronsen
 -->
 <html>
 <head>
@@ -58,9 +59,18 @@ Copyright 2006-2013 Henrik Brautaset Aronsen
     #batplay { padding: 5px; background-color: #ffffff; margin-top: 10px; }
     -->
   </style>
-  <script type="text/javascript" src="jquery-latest.min.js"></script>
-  <script type="text/javascript" src="jwplayer.min.js"></script>
-  <script type="text/javascript" src="mb.js"></script>
+
+  <!-- Workaround for IE5 and IE6 -->
+  <!--[if lte IE 6]>
+  <style type="text/css">
+    body { height: 100%; overflow: hidden; font-size: 100%; }
+    div#content { width: 100%; height: 100%; overflow: auto; }
+    div#header, div#footer, div#rightheader, #box { position: absolute; }
+  </style>
+  <script type="text/javascript">onload = function() { content.focus() }</script>
+  <![endif]-->
+
+  <script type="text/javascript" src="musicbrowser.js"></script>
 </head>
 <body>
 <div id="box"></div>
